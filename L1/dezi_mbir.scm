@@ -20,7 +20,7 @@
 
 (define *stmt-table*     (make-hash))  ;;holds contents of each line DO NOT MODIFY THIS
 (define *function-table* (make-hash))  ;;holds operantors, trig functions, etc
-(define *var-table*      (make-hash))  ;;holds values of variables predefined: nan, pi, e. If key DNE, return value 0
+(define *var-table*      (make-hash))  ;;holds values of variables predefined: If key DNE, ret value 0
 (define *array-table*    (make-hash))  ;;holds arrays
 (define *label-table*    (make-hash))  ;;holds address of each line of the program
 
@@ -106,27 +106,33 @@
 (define NAN (/ 0.0 0.0) )
 
 (define (eval-expr expr)
-    (cond ((number? expr) (+ expr 0.0))                              ;;is a number convert to float
-          ((symbol? expr) (hash-ref *var-table* expr 0.0))           ;;is a symbol reference the hash table
+    (cond ((number? expr) (+ expr 0.0))                              ;; Is a number convert to float
+          ((symbol? expr) (hash-ref *var-table* expr 0.0))           ;; Is a symbol reference the hash table
           ((pair? expr)
-              (let ((func (hash-ref *function-table* (car expr) #f)) ;;#f returned if function not found
-                   (operand (map eval-expr (cdr expr) )))            ;;get each of the arguments
+              (let ((func (hash-ref *function-table* (car expr) #f)) ;; #f returned if function not found
+                   (operand (map eval-expr (cdr expr) )))            ;; Get each of the arguments
               (if (not func) 
                    (NAN)
                    (apply func operand) )))
               (else (NAN) )))
 
 (define (interp-dim args continuation)
-    (not-implemented 'interp-dim args 'nl)
+    (define name (cadar args))     ;; the name of the vector/array
+    (define size (caddar args))    ;; define the size
+    (cond ((number? size) (+ size 0.0))   ;; Size is a number
+         ((symbol? size) (hash-ref *var-table* size 0.0))) ;; Size is a symbol if not found ret 0
+    (define vec (make-vector (exact-round size) 0.0))
+    (hash-set! *array-table* name vec)  ;;put the vector into array table under name 
     (interp-program continuation))
 
 (define (interp-let args continuation)
-    (not-implemented 'interp-let args 'nl)
+    (hash-set! *var-table*
+        (car args) (eval-expr (cadr args)));; Hash the var name with eval value
     (interp-program continuation))
 
 (define (interp-goto args continuation)
-    (not-implemented 'interp-goto args 'nl)
-    (interp-program continuation))
+    (let ((address (hash-ref *label-table* (car args))))
+    (interp-program address)))
 
 (define (interp-if args continuation)
     (not-implemented 'interp-if args 'nl)
@@ -142,7 +148,6 @@
     (interp-program continuation))
 
 (define (interp-input args continuation)
-    (not-implemented 'interp-input args 'nl)
     (interp-program continuation))
 
 (for-each (lambda (fn) (hash-set! *stmt-table* (car fn) (cadr fn)))
@@ -165,7 +170,15 @@
                    (interp-program continuation)))))
 
 (define (scan-for-labels program)
-    (not-implemented 'scan-for-labels '() 'nl))
+    (define (get-label line)
+        (and (not(null? line))
+             (not (null? (cdr line)))
+             (cadr line)))
+    (when (not (null? program))
+        (let ((label (get-label (car program))))
+             (when (symbol? label)
+                 (hash-set! *label-table* label program)))
+        (scan-for-labels (cdr program))))
 
 (define (readlist filename)
     (let ((inputfile (open-input-file filename)))
