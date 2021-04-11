@@ -27,30 +27,38 @@
 ;;predefined function table
 (for-each (lambda (fxn) (hash-set! *function-table* (car fxn) (cadr fxn)))
    `(
-    ;; operands
-    (+     ,+     )
-    (-     ,-     )
-    (*     ,*     )
-    (/     ,/     )
-    (^     ,expt  )
-    
-    ;; Trig functions
-        (sqrt  ,sqrt)
-        (acos  ,acos)
-        (asin  ,asin)
-        (atan  ,atan)
-        (cos   ,cos)
-        (abs   ,abs)
-        (exp   ,exp)
-        (log   ,log)
-        (round ,round)
-        (sin   ,sin)
-        (tan   ,tan)
-        (trunc ,floor)
-        (floor ,floor)
-        (ceil  ,ceiling)
-        (log10 ,(lambda (x) (/ (log x ) (log 10.0))))
-     )
+    	;; operands
+    	(+     ,+     )
+    	(-     ,-     )
+    	(*     ,*     )
+    	(/     ,/     )
+    	(^     ,expt  )
+    	
+	;; bool operands
+	(<     ,<     )
+	(>     ,>     )
+	(<=    ,<=     )
+	(>=    ,>=     )
+	(=     ,=     )
+	(!=    ,not     )
+	
+    	;; Trig functions
+    	(sqrt  ,sqrt)
+    	(acos  ,acos)
+    	(asin  ,asin)
+    	(atan  ,atan)
+    	(cos   ,cos)
+    	(abs   ,abs)
+    	(exp   ,exp)
+    	(log   ,log)
+    	(round ,round)
+    	(sin   ,sin)
+    	(tan   ,tan)
+    	(trunc ,floor)
+    	(floor ,floor)
+    	(ceil  ,ceiling)
+    	(log10 ,(lambda (x) (/ (log x ) (log 10.0))))
+   )
 )
 
 
@@ -104,6 +112,9 @@
 
 (define NAN (/ 0.0 0.0))
 
+;; Functions to be implemented
+;;
+;;
 (define (eval-expr expr)
     (cond ((number? expr) (+ expr 0.0)) ;;is a number convert to float
           ((symbol? expr) (hash-ref *var-table* expr 0.0)) ;;is a symbol reference the hash table
@@ -129,8 +140,10 @@
     	 (interp-program address)))
 
 (define (interp-if args continuation)
-    (not-implemented 'interp-if args 'nl)
-    (interp-program continuation))
+    (cond ((not (eval-expr(car args))) ;; evaluate conditional of args statement (assume false/not)
+	        (interp-program continuation)) ;; pass current continuation of program if false
+		(else (let ((address (hash-ref *label-table* (cadr args))))
+		           (interp-program address))))) ;; else: if true, pass interp control to continuation at label
 
 (define (interp-print args continuation)
     (define (print item)
@@ -138,12 +151,18 @@
             (printf "~a" item)
             (printf " ~a" (eval-expr item))))
     (for-each print args)
-    (printf "~n");
+    (printf "~n")
     (interp-program continuation))
 
 (define (interp-input args continuation)
-    (not-implemented 'interp-input args 'nl)
+    (define(hash-var var) ;; set any given variable to stdin input in the var-table
+	(let((value (read)))
+	    (hash-set! *var-table* var value)))
+    (map hash-var args) ;; hash-var for every var in args
     (interp-program continuation))
+;;
+;;
+;; End of functions to be implemented
 
 (for-each (lambda (fn) (hash-set! *stmt-table* (car fn) (cadr fn)))
    `(
