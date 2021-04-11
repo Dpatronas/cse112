@@ -18,21 +18,29 @@
 (define *STDERR* (current-error-port))
 (define *ARG-LIST* (vector->list (current-command-line-arguments)))
 
-(define *stmt-table*     (make-hash))  ;;holds contents of each line DO NOT MODIFY THIS
-(define *function-table* (make-hash))  ;;holds operantors, trig functions, etc
-(define *var-table*      (make-hash))  ;;holds values of variables predefined: If key DNE, ret value 0
-(define *array-table*    (make-hash))  ;;holds arrays
-(define *label-table*    (make-hash))  ;;holds address of each line of the program
+(define *stmt-table*     (make-hash)) ;;DO NOT MODIFY THIS
+(define *function-table* (make-hash)) ;;operantors, trig functions, etc
+(define *var-table*      (make-hash)) ;;ret value 0 if DNE
+(define *array-table*    (make-hash)) ;;holds arrays
+(define *label-table*    (make-hash)) ;;address of each line
 
 ;;predefined function table
-(for-each (lambda (fxn) (hash-set! *function-table* (car fxn) (cadr fxn) ))
+(for-each (lambda (fxn)(hash-set! *function-table*(car fxn)(cadr fxn)))
    `(
-        ;; operands
+        ;; Arithmetic Operands
         (+     ,+     )
         (-     ,-     )
         (*     ,*     )
         (/     ,/     )
         (^     ,expt  )
+
+        ;; Bool Operands
+        (<     ,<     )
+        (>     ,>     )
+        (<=    ,<=    )
+        (>=    ,>=    )
+        (=     ,=     )
+        (!=    ,not   )
 
         ;; Trig functions
         (sqrt  ,sqrt)
@@ -40,12 +48,15 @@
         (asin  ,asin)
         (atan  ,atan)
         (cos   ,cos)
+        (sin   ,sin)
+        (tan   ,tan)
+ 
+        ;; Other
+        (asub  "asub") ;;clue to check the array table
         (abs   ,abs)
         (exp   ,exp)
         (log   ,log)
         (round ,round)
-        (sin   ,sin)
-        (tan   ,tan)
         (trunc ,floor)
         (floor ,floor)
         (ceil  ,ceiling)
@@ -106,11 +117,27 @@
 (define NAN (/ 0.0 0.0) )
 
 (define (eval-expr expr)
-    (cond ((number? expr) (+ expr 0.0))                              ;; Is a number convert to float
-          ((symbol? expr) (hash-ref *var-table* expr 0.0))           ;; Is a symbol reference the hash table
+    ;; Is a number convert to float
+    (cond ((number? expr) (+ expr 0.0))
+
+          ;; Is a symbol refer to hash table
+          ((symbol? expr) (hash-ref *var-table* expr 0.0))
+          
+              ;; Is from the array table
+              ((equal? expr "asub"
+)
+              ;;grab array from table
+              (define arr ((hash-ref *array-table*) (car expr) #f))
+;;            (if (not arr) (display("this array does not exist")))
+
+              (define index (cdr expr)) ;; Index to access array
+              (cond ((number? index) (+ index 0.0)) ;; Index is stored?
+                    ((symbol? index) (hash-ref *var-table* index 0.0)))
+              (printf "~s" ( vector-ref arr index)) )
+
           ((pair? expr)
-              (let ((func (hash-ref *function-table* (car expr) #f)) ;; #f returned if function not found
-                   (operand (map eval-expr (cdr expr) )))            ;; Get each of the arguments
+              (let ((func (hash-ref *function-table* (car expr) #f))
+                   (operand (map eval-expr (cdr expr) ))) ;;Get each arg
               (if (not func) 
                    (NAN)
                    (apply func operand) )))
@@ -120,14 +147,14 @@
     (define name (cadar args))     ;; the name of the vector/array
     (define size (caddar args))    ;; define the size
     (cond ((number? size) (+ size 0.0))   ;; Size is a number
-         ((symbol? size) (hash-ref *var-table* size 0.0))) ;; Size is a symbol if not found ret 0
+         ((symbol? size) (hash-ref *var-table* size 0.0)))
     (define vec (make-vector (exact-round size) 0.0))
-    (hash-set! *array-table* name vec)  ;;put the vector into array table under name 
+    (hash-set! *array-table* name vec)
     (interp-program continuation))
 
 (define (interp-let args continuation)
     (hash-set! *var-table*
-        (car args) (eval-expr (cadr args)));; Hash the var name with eval value
+        (car args) (eval-expr (cadr args)))
     (interp-program continuation))
 
 (define (interp-goto args continuation)
@@ -135,8 +162,10 @@
     (interp-program address)))
 
 (define (interp-if args continuation)
-    (not-implemented 'interp-if args 'nl)
-    (interp-program continuation))
+    (cond ((not (eval-expr(car args))) ;; (assume false/not)
+        (interp-program continuation)) ;; if false
+        (else (let ((address (hash-ref *label-table* (cadr args))))
+              (interp-program address))))) ;; else: if true
 
 (define (interp-print args continuation)
     (define (print item)
@@ -148,6 +177,10 @@
     (interp-program continuation))
 
 (define (interp-input args continuation)
+    (define(hash-var var)
+           (let((value (read)))
+                 (hash-set! *var-table* var value)))
+    (map hash-var args)
     (interp-program continuation))
 
 (for-each (lambda (fn) (hash-set! *stmt-table* (car fn) (cadr fn)))
