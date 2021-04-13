@@ -11,6 +11,10 @@
 ;;    The file mentioned in argv[1] is read and assumed to be an mbir
 ;;    program, which is the executed.  Currently it is only printed.
 ;;
+;; Note:  ~a : arg any data type
+;; print  ~s : string
+;; specs  ~n : newline
+;;
 
 (define *DEBUG* #f)
 (define *STDIN* (current-input-port))
@@ -40,7 +44,7 @@
         (<=    ,<=    )
         (>=    ,>=    )
         (=     ,=     )
-        (!=    ,not   )
+        (!=    ,(lambda (x y) (not (= x y))))
 
         ;; Trig functions
         (sqrt  ,sqrt)
@@ -52,7 +56,8 @@
         (tan   ,tan)
  
         ;; Other
-        (asub  "asub") ;;clue to check the array table
+        ;; Check the array table
+        (asub  ,"asub")
         (abs   ,abs)
         (exp   ,exp)
         (log   ,log)
@@ -60,7 +65,7 @@
         (trunc ,floor)
         (floor ,floor)
         (ceil  ,ceiling)
-        (log10 ,(lambda (x) (/ (log x ) (log 10.0))))
+        ((log 10) ,(lambda (x) (/ (log x ) (log 10.0))))
     )
 )
 
@@ -117,39 +122,57 @@
 (define NAN (/ 0.0 0.0) )
 
 (define (eval-expr expr)
-    ;; Is a number convert to float
-    (cond ((number? expr) (+ expr 0.0))
+    ;;evaluate the expr
+    (cond
+         ;; Is a number?  Convert to float
+         ((number? expr) (+ expr 0.0))
 
-          ;; Is a symbol refer to hash table
-          ((symbol? expr) (hash-ref *var-table* expr 0.0))
-          
-              ;; Is from the array table
-              ((equal? expr "asub"
-)
-              ;;grab array from table
-              (define arr ((hash-ref *array-table*) (car expr) #f))
-;;            (if (not arr) (display("this array does not exist")))
+         ;; Is a variab?           get variable !var = 0.0
+         ((symbol? expr) (hash-ref *var-table* expr 0.0)) 
 
-              (define index (cdr expr)) ;; Index to access array
-              (cond ((number? index) (+ index 0.0)) ;; Index is stored?
-                    ((symbol? index) (hash-ref *var-table* index 0.0)))
-              (printf "~s" ( vector-ref arr index)) )
+         ;; Is a pair?
+         ((pair? expr)
+             
+             ;; Check for func == asub
+             (let ((func (hash-ref *function-table* (car expr) #f)))
+                  (when (equal? func "asub") ;; cond
 
-          ((pair? expr)
-              (let ((func (hash-ref *function-table* (car expr) #f))
-                   (operand (map eval-expr (cdr expr) ))) ;;Get each arg
-              (if (not func) 
-                   (NAN)
-                   (apply func operand) )))
-              (else (NAN) )))
+                     ;; TRUE: Get the array using the name = key
+                     (let((array (hash-ref *array-table* (cadar asub) (#f))) ;;T
+
+                         ;; Find the index to accces array
+                         (index (map eval-expr (cdr expr))))
+                         (printf "~a" (vector-ref array index)))))
+
+             ;; Find the func
+             (let (( func (hash-ref *function-table* (car expr) #f))
+                  ;;?? map eval-expr to rest of list (gets args) 
+                  (operand (map eval-expr (cdr expr)))) 
+
+                  (if (not func) ;; Condition 
+                       NAN       ;; T
+                      (apply func operand)))) ;; F, apply func to args
+
+         ;; Unidentifiable expr. Default condition
+         (else NAN)))
+
+             ;;if func is array reference the array
+             ;; ((equal? expr "asub")
+             ;; (define index (cdr expr)) ;; Index to access array
+             ;; (cond ((number? index) (+ index 0.0)) ;; Index is stored?
+             ;;       ((symbol? index) (hash-ref *var-table* index 0.0)))
+             ;; (printf "~a" ( vector-ref arr index)) )
+
+
 
 (define (interp-dim args continuation)
-    (define name (cadar args))     ;; the name of the vector/array
-    (define size (caddar args))    ;; define the size
-    (cond ((number? size) (+ size 0.0))   ;; Size is a number
-         ((symbol? size) (hash-ref *var-table* size 0.0)))
-    (define vec (make-vector (exact-round size) 0.0))
-    (hash-set! *array-table* name vec)
+    ;; Define local variable and hash-set the vector
+    (let ( 
+           (name (cadar args))     ;; name of vector
+           (size (caddar args))    ;; size of vector
+           (vec (make-vector (exact-round (eval-expr (caddar args))) 0.0))
+         )
+         (hash-set! *array-table* name vec) )
     (interp-program continuation))
 
 (define (interp-let args continuation)
