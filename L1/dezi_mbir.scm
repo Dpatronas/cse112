@@ -137,12 +137,13 @@
              (let ((func (hash-ref *function-table* (car expr) #f)))
                   (when (equal? func "asub") ;; cond
 
-                     ;; TRUE: Get the array using the name = key
-                     (let((array (hash-ref *array-table* (cadar asub) (#f))) ;;T
+                  ;; TRUE: Get the array using the name = key
+                  (let((array (hash-ref *array-table* (cadar asub) 
+                                                            (#f)))
 
-                         ;; Find the index to accces array
-                         (index (map eval-expr (cdr expr))))
-                         (printf "~a" (vector-ref array index)))))
+                      ;; Find the index to accces array
+                      (index (map eval-expr (cdr expr))))
+                      (printf "~a" (vector-ref array index)))))
 
              ;; Find the func
              (let (( func (hash-ref *function-table* (car expr) #f))
@@ -156,21 +157,12 @@
          ;; Unidentifiable expr. Default condition
          (else NAN)))
 
-             ;;if func is array reference the array
-             ;; ((equal? expr "asub")
-             ;; (define index (cdr expr)) ;; Index to access array
-             ;; (cond ((number? index) (+ index 0.0)) ;; Index is stored?
-             ;;       ((symbol? index) (hash-ref *var-table* index 0.0)))
-             ;; (printf "~a" ( vector-ref arr index)) )
-
-
-
 (define (interp-dim args continuation)
     ;; Define local variable and hash-set the vector
     (let ( 
-           (name (cadar args))     ;; name of vector
-           (size (caddar args))    ;; size of vector
-           (vec (make-vector (exact-round (eval-expr (caddar args))) 0.0))
+         (name (cadar args))     ;; name of vector
+         (size (caddar args))    ;; size of vector
+         (vec (make-vector (exact-round (eval-expr (caddar args))) 0.0))
          )
          (hash-set! *array-table* name vec) )
     (interp-program continuation))
