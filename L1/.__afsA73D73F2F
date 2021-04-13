@@ -197,7 +197,7 @@
 (define (interp-input args continuation)
     (define(hash-var var)
            (let((value (read)))
-		 (cond ((null? value) (exit))
+		 (cond ((null? value) (usage-exit))
 		       ((eof-object? value) (exit))
 		       (else (hash-set! *var-table* var value)))))
     (map hash-var args)
