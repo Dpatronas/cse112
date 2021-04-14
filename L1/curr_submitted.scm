@@ -135,24 +135,29 @@
 
          ;; Is a pair?
          ((pair? expr)
-         
-         ;; Check for func == asub
-           (define func (hash-ref *function-table* (car expr) #f))
-           (if (equal? func "asub") ;; cond
+             
+             ;; Check for func == asub
+             (let ((func (hash-ref *function-table* (car expr) #f)))
+                  (when (equal? func "asub") ;; cond
 
-           ;; TRUE: Get the array using the name = key
-           (let ( (array (hash-ref *array-table* (cadr expr) #f))
-                  (index (exact-round (eval-expr (caddr expr))))
-                  (name (cadr expr)) )
-                  (printf "~a" (vector-ref array index)) )
+                  ;; TRUE: Get the array using the name = key
+                  (let((array (hash-ref *array-table* (cadar asub) 
+                                                            (#f)))
 
-           ;; false map eval-expr to rest of list (gets args) 
-           (let ( (operand (map eval-expr (cdr expr))) )
-                (if (not func) ;; Condition 
-                    NAN       ;; T
-                    (apply func operand))) )) ;; F, apply func to arg
+                      ;; Find the index to accces array
+                      (index (map eval-expr (cdr expr))))
+                      (printf "~a" (vector-ref array index)))))
 
-         ;; Unidentifiable expr
+             ;; Find the func
+             (let (( func (hash-ref *function-table* (car expr) #f))
+                  ;;?? map eval-expr to rest of list (gets args) 
+                  (operand (map eval-expr (cdr expr)))) 
+
+                  (if (not func) ;; Condition 
+                       NAN       ;; T
+                      (apply func operand)))) ;; F, apply func to args
+
+         ;; Unidentifiable expr. Default condition
          (else NAN)))
 
 (define (interp-dim args continuation)
@@ -166,15 +171,8 @@
     (interp-program continuation))
 
 (define (interp-let args continuation)
-
-    (define func (hash-ref *function-table* (caar args) #f))
-    (if (equal? func "asub" )
-        (let ( (array (hash-ref *array-table* (cadar args) #f))
-               (index (caddar args))
-               (set   (eval-expr (cadr args))) )
-               (vector-set! array index set))
-    ;;else 
-    (hash-set! *var-table* (car args) (eval-expr (cadr args))) )
+    (hash-set! *var-table*
+        (car args) (eval-expr (cadr args)))
     (interp-program continuation))
 
 (define (interp-goto args continuation)
