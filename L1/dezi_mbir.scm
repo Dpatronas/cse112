@@ -166,15 +166,13 @@
     (interp-program continuation))
 
 (define (interp-let args continuation)
-
-    (define func (hash-ref *function-table* (caar args) #f))
-    (if (equal? func "asub" )
-        (let ( (array (hash-ref *array-table* (cadar args) #f))
+    (cond ((not (list? (car args)))
+               (hash-set! *var-table* (car args) (eval-expr (cadr args))))
+          (else
+               (let ( (array (hash-ref *array-table* (cadar args) #f))
                (index (caddar args))
                (set   (eval-expr (cadr args))) )
-               (vector-set! array index set))
-    ;;else 
-    (hash-set! *var-table* (car args) (eval-expr (cadr args))) )
+               (vector-set! array index set))))
     (interp-program continuation))
 
 (define (interp-goto args continuation)
