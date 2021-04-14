@@ -1,0 +1,13 @@
+;;Source: mb-programs.d/12-syntax.mb
+(
+(    1          )
+(    2          )
+(    3          )
+(    4          (dim (asub a 10)))
+(    5          (print "a[" 2 " ]=" (asub a 2)))
+(    6          (let (asub a 2 ) 323))
+(    7          (print "a[" 2 " ]=" (asub a 2)))
+(    8          )
+(    9          )
+(   10          (print "Hello"))
+)
