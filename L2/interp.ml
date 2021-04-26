@@ -47,7 +47,7 @@ and interp_stmt (stmt : Absyn.stmt) (continue : Absyn.program) =
     match stmt with
     | Dim (ident,  expr) -> interp_STUB "Dim (ident, expr)" continue
     | Let (memref, expr) -> interp_let   memref expr        continue
-    | Goto         label -> interp_STUB "Goto label"        continue
+    | Goto         label -> interp_goto  label
     | If  (expr, label)  -> interp_STUB "If (expr, label)"  continue
     | Print print_list   -> interp_print print_list         continue
     | Input memref_list  -> interp_input memref_list        continue
@@ -58,6 +58,11 @@ and interp_let (memref) (expr) (continue) = match memref with
        | Variable ident -> Hashtbl.replace Tables.variable_table
                                              ident (eval_expr expr);
    interpret continue
+
+and interp_goto (label) =
+    try let find_label = Hashtbl.find Tables.label_table label
+        in interpret find_label
+    with Not_found -> exit 0;
 
 and interp_print (print_list : Absyn.printable list)
                  (continue : Absyn.program) =
