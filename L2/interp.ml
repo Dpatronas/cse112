@@ -12,11 +12,11 @@ type relx = float -> float -> float;;
 
 (* eval_expr-- arg expr type: Absyn.expr, return expr type: float *)
 let rec eval_expr (expr : Absyn.expr) : float = match expr with
-    | Number number  -> number (*returns number*)
-    | Memref memref  -> eval_memref memref (*returns location*)
-    | Unary (unop , e1) -> Hashtbl.find Tables.unary_fn_table  unop
+    | Number number  -> number                    (*returns number*)
+    | Memref memref  -> eval_memref memref      (*returns location*)
+    | Unary (unop , e1)  -> Hashtbl.find Tables.unary_fn_table  unop
                            (eval_expr e1)
-    | Binary(bnop,e1,e2)-> Hashtbl.find Tables.binary_fn_table bnop
+    | Binary(bnop,e1,e2) -> Hashtbl.find Tables.binary_fn_table bnop
                            (eval_expr e1) (eval_expr e2)
 
 and eval_memref (memref : Absyn.memref) : float = match memref with
@@ -25,18 +25,17 @@ and eval_memref (memref : Absyn.memref) : float = match memref with
                         with Not_found -> 0.0  (*if !found ret 0.0*)
 
 and eval_STUB reason = (
-   print_string ("(" ^ reason ^ ")");
-   nan)
+   print_string ("(" ^ reason ^ ")"); nan)
 
 and eval_relex relexpr : bool = match relexpr with
     | Relexpr (relx,e1,e2) -> Hashtbl.find Tables.bool_fn_table relx
-                            (eval_expr e1) (eval_expr e2)
+                             (eval_expr e1) (eval_expr e2)
  
 let rec interpret (program : Absyn.program) = match program with
-    | [] -> () (*empty .. do nothing return unit ()*)
-    | firstline::continue -> match firstline with (*3 tuple*)
-       | _, _, None      -> interpret continue         (*none stmt*)
-       | _, _, Some stmt -> (interp_stmt stmt continue)(*some stmt*)
+    | [] -> ()                (*empty .. do nothing return unit ()*)
+    | firstline::continue  -> match firstline with
+       | _, _, None        -> interpret continue
+       | _, _, Some stmt   -> (interp_stmt stmt continue)
 
 and interp_stmt (stmt : Absyn.stmt) (continue : Absyn.program) =
     match stmt with
