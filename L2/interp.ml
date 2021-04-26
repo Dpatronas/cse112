@@ -8,19 +8,19 @@ let source_filename = ref ""
 
 type bnop = float -> float -> float;;
 type unop = float -> float;;
+type relx = float -> float -> float;;
 
 (* eval_expr-- arg expr type: Absyn.expr, return expr type: float *)
 let rec eval_expr (expr : Absyn.expr) : float = match expr with
     | Number number  -> number (*returns number*)
     | Memref memref  -> eval_memref memref (*returns location*)
-    | Unary (unop , e1)  -> Hashtbl.find Tables.unary_fn_table unop
+    | Unary (unop , e1) -> Hashtbl.find Tables.unary_fn_table  unop
                            (eval_expr e1)
-    | Binary(bnop,e1,e2) ->Hashtbl.find Tables.binary_fn_table bnop
+    | Binary(bnop,e1,e2)-> Hashtbl.find Tables.binary_fn_table bnop
                            (eval_expr e1) (eval_expr e2)
 
 and eval_memref (memref : Absyn.memref) : float = match memref with
     | Arrayref (ident, expr) -> eval_STUB "eval_memref Arrayref"
-    (*look for var in table                              ret value*)
     | Variable ident -> try Hashtbl.find Tables.variable_table ident
                         with Not_found -> 0.0  (*if !found ret 0.0*)
 
@@ -28,41 +28,40 @@ and eval_STUB reason = (
    print_string ("(" ^ reason ^ ")");
    nan)
 
-(*
-and eval_relex relexpr = match relexpr with
-   | Relexpr oper -> try Hashtbl.find Tables.binary_fn_table oper
-                     with Not_found -> NAN
-*)
-    
-(* note: efficient pattern matching > hash table lookup *)
+and eval_relex relexpr : bool = match relexpr with
+    | Relexpr (relx,e1,e2) -> Hashtbl.find Tables.bool_fn_table relx
+                            (eval_expr e1) (eval_expr e2)
+ 
 let rec interpret (program : Absyn.program) = match program with
     | [] -> () (*empty .. do nothing return unit ()*)
     | firstline::continue -> match firstline with (*3 tuple*)
-
-       (*ignore #,label -- check for stmt*)
        | _, _, None      -> interpret continue         (*none stmt*)
        | _, _, Some stmt -> (interp_stmt stmt continue)(*some stmt*)
 
 and interp_stmt (stmt : Absyn.stmt) (continue : Absyn.program) =
     match stmt with
-    | Dim (ident,  expr) -> interp_STUB "Dim (ident, expr)" continue
-    | Let (memref, expr) -> interp_let   memref expr        continue
-    | Goto         label -> interp_goto  label
-    | If  (expr, label)  -> interp_STUB "If (expr, label)"  continue
-    | Print print_list   -> interp_print print_list         continue
-    | Input memref_list  -> interp_input memref_list        continue
+    | Dim   (ident,  expr) -> interp_STUB "Dim"            continue
+    | Let   (memref, expr) -> interp_let   memref   expr   continue
+    | Goto  label          -> interp_goto  label
+    | If    (expr, label)  -> interp_if    expr     label  continue
+    | Print print_list     -> interp_print print_list      continue
+    | Input memref_list    -> interp_input memref_list     continue
 
 and interp_let (memref) (expr) (continue) = match memref with
-       | Arrayref (ident,expr) ->interp_STUB "Arrayref (ident,expr)"
-                                                            continue
-       | Variable ident -> Hashtbl.replace Tables.variable_table
-                                             ident (eval_expr expr);
+    | Arrayref (ident,expr) ->interp_STUB "Arrayref"       continue
+    | Variable ident -> Hashtbl.replace Tables.variable_table
+                                       ident (eval_expr expr);
    interpret continue
 
 and interp_goto (label) =
     try let find_label = Hashtbl.find Tables.label_table label
         in interpret find_label
     with Not_found -> exit 0;
+
+and interp_if (expr) (label) (continue) =
+    if (eval_relex expr) then interp_goto label;
+    (*else?*)
+    interpret continue
 
 and interp_print (print_list : Absyn.printable list)
                  (continue : Absyn.program) =
