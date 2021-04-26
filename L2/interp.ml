@@ -11,9 +11,9 @@ type unop = float -> float;;
 
 (* eval_expr-- arg expr type: Absyn.expr, return expr type: float *)
 let rec eval_expr (expr : Absyn.expr) : float = match expr with
-    | Number number -> number (*returns number*)
-    | Memref memref -> eval_memref memref (*returns location*)
-    | Unary(unop,e1)-> Hashtbl.find Tables.unary_fn_table unop
+    | Number number  -> number (*returns number*)
+    | Memref memref  -> eval_memref memref (*returns location*)
+    | Unary (unop , e1)  -> Hashtbl.find Tables.unary_fn_table unop
                            (eval_expr e1)
     | Binary(bnop,e1,e2) ->Hashtbl.find Tables.binary_fn_table bnop
                            (eval_expr e1) (eval_expr e2)
@@ -34,7 +34,6 @@ and eval_relex relexpr = match relexpr with
                      with Not_found -> NAN
 *)
     
-
 (* note: efficient pattern matching > hash table lookup *)
 let rec interpret (program : Absyn.program) = match program with
     | [] -> () (*empty .. do nothing return unit ()*)
@@ -47,11 +46,18 @@ let rec interpret (program : Absyn.program) = match program with
 and interp_stmt (stmt : Absyn.stmt) (continue : Absyn.program) =
     match stmt with
     | Dim (ident,  expr) -> interp_STUB "Dim (ident, expr)" continue
-    | Let (memref, expr) -> interp_STUB "Let (memref, expr)" continue
-    | Goto         label -> interp_STUB "Goto label" continue
-    | If  (expr, label)  -> interp_STUB "If (expr, label)" continue
-    | Print print_list   -> interp_print print_list continue
-    | Input memref_list  -> interp_input memref_list continue
+    | Let (memref, expr) -> interp_let   memref expr        continue
+    | Goto         label -> interp_STUB "Goto label"        continue
+    | If  (expr, label)  -> interp_STUB "If (expr, label)"  continue
+    | Print print_list   -> interp_print print_list         continue
+    | Input memref_list  -> interp_input memref_list        continue
+
+and interp_let (memref) (expr) (continue) = match memref with
+       | Arrayref (ident,expr) ->interp_STUB "Arrayref (ident,expr)"
+                                                            continue
+       | Variable ident -> Hashtbl.replace Tables.variable_table
+                                             ident (eval_expr expr);
+   interpret continue
 
 and interp_print (print_list : Absyn.printable list)
                  (continue : Absyn.program) =
