@@ -1,0 +1,172 @@
+head	1.5;
+access;
+symbols;
+locks;
+comment	@# @;
+
+
+1.5
+date	2021.04.22.21.13.57;	author -;	state -;
+branches;
+next	1.4;
+
+1.4
+date	2021.04.22.09.34.01;	author -;	state -;
+branches;
+next	1.3;
+
+1.3
+date	2021.04.22.09.29.16;	author -;	state -;
+branches;
+next	1.2;
+
+1.2
+date	2021.04.22.09.27.07;	author -;	state -;
+branches;
+next	1.1;
+
+1.1
+date	2021.04.22.08.57.13;	author -;	state -;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.5
+log
+@-
+@
+text
+@<HEAD>
+<TITLE>README.text</TITLE>
+<STYLE> 
+BODY {
+   color: #40FF40;
+   background-color: #000000;
+}
+A:link {color: #FFFF00}
+A:visited {color: #00FFFF}
+A:hover {color: #FF0000}
+</STYLE>
+</HEAD> 
+<BODY>
+<PRE>
+
+Objective Caml links:
+
+The Objective Caml home page
+<A HREF=https://ocaml.org/>https://ocaml.org/</A>
+
+Learn about OCaml
+<A HREF=https://ocaml.org/learn/>https://ocaml.org/learn/</A>
+
+OCaml Documentation
+<A HREF=https://ocaml.org/docs/>https://ocaml.org/docs/</A>
+
+Install OCaml
+<A HREF=https://ocaml.org/docs/install.html>https://ocaml.org/docs/install.html</A>
+
+An Introduction to Objective Caml
+/afs/cats.ucsc.edu/courses/cse112-wm/Languages/ocaml/intro-ocaml-columbia/
+<A HREF=https://www2.ucsc.edu/courses/cse112-wm/:/Languages/ocaml/intro-ocaml-columbia/>https://www2.ucsc.edu/courses/cse112-wm/:/Languages/ocaml/intro-ocaml-columbia/</A>
+
+Think OCaml: How to Think Like a (Functional) Computer Scientist
+/afs/cats.ucsc.edu/courses/cse112-wm/Languages/ocaml/think-ocaml/
+<A HREF=https://www2.ucsc.edu/courses/cse112-wm/:/Languages/ocaml/think-ocaml/>https://www2.ucsc.edu/courses/cse112-wm/:/Languages/ocaml/think-ocaml/</A>
+<A HREF=http://greenteapress.com/thinkocaml/>http://greenteapress.com/thinkocaml/</A>
+
+Unix Systems Programming in Objective Caml
+<A HREF=https://www2.ucsc.edu/courses/cse112-wm/:/Languages/ocaml/unix-systems-programming/>https://www2.ucsc.edu/courses/cse112-wm/:/Languages/ocaml/unix-systems-programming/</A>
+<A HREF=https://www2.ucsc.edu/courses/cse112-wm/:/Languages/ocaml/unix-systems-programming/ocamlunix.pdf>https://www2.ucsc.edu/courses/cse112-wm/:/Languages/ocaml/unix-systems-programming/ocamlunix.pdf</A>
+
+Strict Typed Functional Programming in OCaml
+<A HREF=https://www2.ucsc.edu/courses/cse112-wm/:/Languages/ocaml/strict-typed-fnprog-ocaml/>https://www2.ucsc.edu/courses/cse112-wm/:/Languages/ocaml/strict-typed-fnprog-ocaml/</A>
+<A HREF=http://www.bromans.com/david/publ/ocaml-tutorial.pdf>http://www.bromans.com/david/publ/ocaml-tutorial.pdf</A>
+
+Why do you like functional programming so much?
+<A HREF=https://imgs.xkcd.com/comics/functional_2x.png>https://imgs.xkcd.com/comics/functional_2x.png</A>
+
+What is a Makefile and how does it work?
+<A HREF=https://opensource.com/article/18/8/what-how-makefile>https://opensource.com/article/18/8/what-how-makefile</A>
+
+What is OCaml?
+<A HREF=https://ocaml.org/learn/description.html>https://ocaml.org/learn/description.html</A>
+
+OCaml Success Stories
+<A HREF=https://ocaml.org/learn/success.html>https://ocaml.org/learn/success.html</A>
+
+$Id: README.html,v 1.4 2021-04-22 02:34:01-07 - - $
+</PRE>
+
+<P>
+<A HREF=
+https://imgs.xkcd.com/comics/excel_lambda_2x.png>
+https://imgs.xkcd.com/comics/excel_lambda_2x.png</A>
+<BR>
+<KBD>excel_lambda_2x.png</KBD>
+<P>
+<A HREF=
+https://www2.ucsc.edu/courses/cse110a-wm/:/etc/www.phdcomics.com/>
+<IMG width="75%"
+SRC="excel_lambda_2x.png"
+ALT="excel_lambda_2x.png"
+>
+</A>
+
+</DIV>
+</BODY>
+@
+
+
+1.4
+log
+@-
+@
+text
+@d53 7
+a59 1
+$Id: README.html,v 1.3 2021-04-22 02:29:16-07 - - $
+@
+
+
+1.3
+log
+@-
+@
+text
+@d53 1
+a53 1
+$Id: README.html,v 1.2 2021-04-22 02:27:07-07 - - $
+d57 4
+@
+
+
+1.2
+log
+@-
+@
+text
+@d53 1
+a53 1
+$Id: README.html,v 1.1 2021-04-22 01:57:13-07 - - $
+d61 1
+a61 1
+<IMG style="width=75%;"
+@
+
+
+1.1
+log
+@-
+@
+text
+@d53 1
+a53 1
+$Id: README.text,v 1.4 2021-01-25 21:49:40-08 - - $
+d61 1
+a61 1
+<IMG
+@
