@@ -89,8 +89,7 @@ and interp_input (memref_list : Absyn.memref list)
         try  let number = Etc.read_number ()
              in (Hashtbl.replace Tables.variable_table
              (eval_input memref) number)
-        with End_of_file -> exit 0;
-             (* To DO -- Handle EOF properly *) 
+        with End_of_file -> Hashtbl.replace Tables.variable_table "eof" (1.0);
     in List.iter input_number memref_list;
     interpret continue
 
