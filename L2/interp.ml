@@ -67,8 +67,8 @@ and interp_goto (label) =
     with Not_found -> exit 0;
 
 and interp_if (expr) (label) (continue) =
-    if (eval_relex expr) then interp_goto label;
-    interpret continue (*else dont jump*)
+    if (eval_relex expr) then interp_goto label
+    else interpret continue (*else dont jump*)
 
 and interp_print (print_list : Absyn.printable list)
                  (continue : Absyn.program) =
