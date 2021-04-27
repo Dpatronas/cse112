@@ -1,5 +1,10 @@
 (* $Id: interp.ml,v 1.18 2021-01-29 11:08:27-08 - - $ *)
 
+(*
+-- Despina Patronas dpatrona@ucsc.edu
+-- Adam Barsness    abarsnes@ucsc.edu
+*)
+
 open Absyn
 
 let want_dump = ref false
@@ -13,7 +18,7 @@ type relx = float -> float -> float;;
 (* eval_expr-- arg expr type: Absyn.expr, return expr type: float *)
 let rec eval_expr (expr : Absyn.expr) : float = match expr with
     | Number number  -> number                    (*returns number*)
-    | Memref memref  -> eval_memref memref      (*returns location*)
+    | Memref memref  -> eval_memref memref        (*retrn location*)
     | Unary (unop , e1)  -> Hashtbl.find Tables.unary_fn_table  unop
                            (eval_expr e1)
     | Binary(bnop,e1,e2) -> Hashtbl.find Tables.binary_fn_table bnop
@@ -23,6 +28,10 @@ and eval_memref (memref : Absyn.memref) : float = match memref with
     | Arrayref (ident, expr) -> eval_STUB "eval_memref Arrayref"
     | Variable ident -> try Hashtbl.find Tables.variable_table ident
                         with Not_found -> 0.0  (*if !found ret 0.0*)
+
+and eval_input (memref : Absyn.memref) : string = match memref with
+    | Arrayref (ident, expr) -> "eval_memref Arrayref"
+    | Variable ident -> ident
 
 and eval_STUB reason = (
    print_string ("(" ^ reason ^ ")"); nan)
@@ -59,8 +68,7 @@ and interp_goto (label) =
 
 and interp_if (expr) (label) (continue) =
     if (eval_relex expr) then interp_goto label;
-    (*else?*)
-    interpret continue
+    interpret continue (*else dont jump*)
 
 and interp_print (print_list : Absyn.printable list)
                  (continue : Absyn.program) =
@@ -79,10 +87,10 @@ and interp_input (memref_list : Absyn.memref list)
                  (continue : Absyn.program)  =
     let input_number memref =
         try  let number = Etc.read_number ()
-             (* TO DO -- Store stuffs in sym table *)
-             in (print_float number; print_newline ())
-        with End_of_file -> (* To DO -- Handle EOF *) 
-             (print_string "End_of_file"; print_newline ())
+             in (Hashtbl.replace Tables.variable_table
+             (eval_input memref) number)
+        with End_of_file -> exit 0;
+             (* To DO -- Handle EOF properly *) 
     in List.iter input_number memref_list;
     interpret continue
 
