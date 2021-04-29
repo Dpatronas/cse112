@@ -1,0 +1,11 @@
+        let size = 100
+        dim a[size]
+prtlp:  print "a[", 2, "]=", a[2]
+
+        let i = 10
+prtlp:  print "a[", i, "]=", a[i]
+
+        let a[3] = 333
+prtlp:  print "a[", 3, "]=", a[3]
+
+ 
