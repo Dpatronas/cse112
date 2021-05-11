@@ -16,8 +16,8 @@ type unop = float -> float;;
 type relx = float -> float -> float;;
 
 let rec eval_expr (expr : Absyn.expr) : float = match expr with
-    | Number number      -> number                (*returns number*)
-    | Memref memref      -> eval_memref memref    (*retrn location*)
+    | Number number      -> number
+    | Memref memref      -> eval_memref memref
     | Unary (unop , e1)  -> Hashtbl.find Tables.unary_fn_table  unop
                            (eval_expr e1)
     | Binary(bnop,e1,e2) -> Hashtbl.find Tables.binary_fn_table bnop
@@ -63,21 +63,17 @@ and interp_dim (ident) (expr) (continue) =
     interpret continue
 
 (* set variables and array indexes *)
-and interp_let (memref) (expr) (continue) = match memref with
-    | Arrayref (ident,expr) -> interp_asub memref expr continue
-         (*  Hashtbl.find Tables.array_table (eval_expr ident).
-                        ((eval_expr expr)) <- (eval_expr expr2) *)
+and interp_let (memref) (expr2) (continue) = match memref with
+    | Arrayref (ident,expr) -> interp_asub ident expr expr2 continue
     | Variable ident -> Hashtbl.replace Tables.variable_table
-                                           ident (eval_expr expr);
+                                           ident (eval_expr expr2);
     interpret continue
 
 (* perform array set *)
-and interp_asub (memref) (expr2) (continue) = match memref with
-    | Arrayref (ident,expr) ->
-          let arr = Hashtbl.find Tables.array_table ident
-          in arr.(int_of_float(Float.round(eval_expr expr))) 
-                                        <- (eval_expr expr2)
-    | Variable ident -> ();
+and interp_asub (ident) (expr) (expr2) (continue) =
+    let arr = Hashtbl.find Tables.array_table ident
+    in Array.set arr (int_of_float(Float.round(eval_expr expr))) 
+                                              (eval_expr expr2);
     interpret continue
 
 (* perform jumps *)
@@ -91,6 +87,7 @@ and interp_if (expr) (label) (continue) =
     if (eval_relex expr) then interp_goto label
     else interpret continue (*else dont jump*)
 
+(* print stuffs - dont modify *)
 and interp_print (print_list : Absyn.printable list)
                  (continue : Absyn.program) =
     let print_item item = match item with
@@ -104,7 +101,7 @@ and interp_print (print_list : Absyn.printable list)
 
 (* gets the string for variable which will hold input *)
 and eval_input (memref : Absyn.memref) : string = match memref with
-    | Arrayref (ident, expr) -> "this shouldnt happen.."
+    | Arrayref (ident, expr) -> "this shouldnt happen in testing.."
     | Variable ident -> ident (* input should only be a string.. *)
 
 (* Read input and store into variable. Account EOF*)

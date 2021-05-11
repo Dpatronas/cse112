@@ -1,4 +1,9 @@
-(* $Id: tables.ml,v 1.13 2021-02-04 11:27:21-08 - - $ *)
+(* $Id: tables.ml,v 1.13 2021-02-04 11:27:21-08 - - $ *) 
+
+(*
+-- Despina Patronas dpatrona@ucsc.edu
+-- Adam Barsness    abarsnes@ucsc.edu
+*)
 
 type variable_table_t = (string, float) Hashtbl.t
 type array_table_t = (string, float array) Hashtbl.t
@@ -59,7 +64,7 @@ let _ = List.iter (fun (label, value) ->
                    "<"  ,  (<);
                    "<=" , (<=);
                    ">=" , (>=);
-                   "==" ,  (=); (* structural equal in ocaml  *)
+                   "=" ,  (=); (* structural equal in ocaml  *)
                    "!=" , (<>); (* structural !equal in ocaml *)
                   ]
 
