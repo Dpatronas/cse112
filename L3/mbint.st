@@ -57,6 +57,7 @@ MiniBasic subclass: Expr [ "abstract base class"
    nan := 0.0 / 0.0.
    printOn: file [^ file << self prefix << ')']
    value [MiniBasic unimplemented: self. ^ nan]
+   dict [MiniBasic unimplemented: self. ^ nan]
 ].
 
 Expr subclass: NumExpr [
@@ -81,6 +82,7 @@ Expr subclass: VarExpr [
    printOn: file [^ file << self prefix << variable << ')']
    put: val [varDict at: variable put: val]
    value [^ varDict at: variable ifAbsent: [0.0]]
+   dict [^ varDict]
 ].
 
 Expr subclass: UnopExpr [
@@ -174,13 +176,21 @@ Stmt subclass: DimStmt [
 ].
 
 Stmt subclass: LetStmt [
-   |name expr|
+   |name expr key entry|
    LetStmt class >> new: stmt [^ super new init: stmt]
    init: stmt [
       name := Expr parse: (stmt at: 2).
       expr := Expr parse: (stmt at: 3).
+      key := stmt at: 2. 
+      entry := expr value + 0.0.
+      
+      "Accesses Expr dict field for 'name' instance of Expr (subclass varExpr)"
+      name dict at: key put: entry.
    ]
-   printOn: file [^ file << self prefix << name << ' ' << expr << ')']
+
+   "No interpret return for this function?"
+   interp[]  
+   printOn: file [^ file << self prefix << key << ' ' << entry << ')']
 ].
 
 Stmt subclass: GotoStmt [
