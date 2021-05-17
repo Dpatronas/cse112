@@ -162,6 +162,7 @@ MiniBasic subclass: Stmt [ "abstract base class"
    Stmt class >> incrStmtNr [stmtNr := stmtNr + 1]
    labelDict := Dictionary new.
    printOn: file [^ file << self prefix << ')']
+   dict [^ labelDict]
    interp [MiniBasic unimplemented: self.]
 ].
 
@@ -196,8 +197,9 @@ Stmt subclass: LetStmt [
 Stmt subclass: GotoStmt [
    |label|
    GotoStmt class >> new: stmt [^ super new init: stmt]
-   init: stmt [label := stmt at: 2]
+   init: stmt [label := stmt at: 2.]
    printOn: file [^ file << self prefix << label << ')']
+   interp [stmtNr := labelDict at: label.]
 ].
 
 Stmt subclass: IfStmt [
@@ -279,6 +281,7 @@ Stmt extend [
       stmt size = 0 ifTrue: [stmtSym := #null]
                     ifFalse: [stmtSym := stmt at: 1].
       stmtClass := stmtDict at: stmtSym.
+      "labelDict at: (stmt at: 0) put: 1."
       ^ stmtClass new: stmt.
    ]
 ]
@@ -289,9 +292,20 @@ MiniBasic subclass: Interpreter [
    init: program [
       statements := Array new: program size.
       1 to: program size do: [:index|
-         |stmt parsed|
+         |stmt label parsed|
          stmt := (program at: index) at: 3.
-         statements at: index put: (Stmt parse: stmt).
+         "(label at: 2) ifNotNil: [label := label at: 2]
+                       ifNil: [label := label]."
+         "label removeFirst."
+	 stmt := Stmt parse: stmt.
+         label := #dummylabel.
+         stmt dict at: label put: index.
+	 "stdout << 'test' << nl."
+         ((program at: index) at: 2) ifNotNil:[
+                label := ((program at: index) at: 2).
+                stdout << label << nl.
+                stmt dict at: label put: index].
+         statements at: index put: (stmt).
       ].
    ]
 
