@@ -57,7 +57,6 @@ MiniBasic subclass: Expr [ "abstract base class"
    nan := 0.0 / 0.0.
    printOn: file [^ file << self prefix << ')']
    value [MiniBasic unimplemented: self. ^ nan]
-   dict [MiniBasic unimplemented: self. ^ nan]
 ].
 
 Expr subclass: NumExpr [
@@ -66,7 +65,6 @@ Expr subclass: NumExpr [
    init: val [value := val + 0.0d0]
    printOn: file [^ file << self prefix << value << ')']
    value [^ value + 0.0]
-
 ].
 
 Expr subclass: VarExpr [
@@ -82,42 +80,37 @@ Expr subclass: VarExpr [
    printOn: file [^ file << self prefix << variable << ')']
    put: val [varDict at: variable put: val]
    value [^ varDict at: variable ifAbsent: [0.0]]
-   dict [^ varDict]
 ].
 
 Expr subclass: UnopExpr [
-   |oper opnd opndt result|
+   |oper opnd|
    UnopExpr class >> new: op with: opn [
       ^ super new init: op init: opn.
    ]
    init: op init: opn [
       oper := op. opnd := opn.
-      opndt := opn value.
-      result := (opndt perform: oper) + 0.0.
    ]
    printOn: file [
       ^ file << self prefix << oper << ' ' << opnd << ')'.
    ]
-
-   value [^ result + 0.0]
+   
+   value[^(opnd value perform: oper)]
 ].
 
 Expr subclass: BinopExpr [
-   |oper opnd1 opnd2 opndt1 opndt2 result|
+   |oper opnd1 opnd2|
    BinopExpr class >> new: op with: opn1 with: opn2 [
       ^ super new init: op with: opn1 with: opn2.
    ]
    init: op with: opn1 with: opn2 [
       oper := op. opnd1 := opn1. opnd2 := opn2.
-      opndt1 := opnd1 value. opndt2 := opnd2 value.
-      result := (opndt1 perform: oper with: opndt2) + 0.0.
    ]
    printOn: file [
       ^ file << self prefix << oper << ' ' << opnd1
              << ' ' << opnd2 << ')'.
    ]
-   
-   value [^ result + 0.0]
+
+   value[^((opnd1 value) perform: oper with: (opnd2 value))]
 ].
 
 Expr subclass: ArrayExpr [
@@ -162,7 +155,6 @@ MiniBasic subclass: Stmt [ "abstract base class"
    Stmt class >> incrStmtNr [stmtNr := stmtNr + 1]
    labelDict := Dictionary new.
    printOn: file [^ file << self prefix << ')']
-   dict [^ labelDict]
    interp [MiniBasic unimplemented: self.]
 ].
 
@@ -177,29 +169,23 @@ Stmt subclass: DimStmt [
 ].
 
 Stmt subclass: LetStmt [
-   |name expr key entry|
+   |name expr|
    LetStmt class >> new: stmt [^ super new init: stmt]
    init: stmt [
       name := Expr parse: (stmt at: 2).
       expr := Expr parse: (stmt at: 3).
-      key := stmt at: 2. 
-      entry := expr value + 0.0.
-      
-      "Accesses Expr dict field for 'name' instance of Expr (subclass varExpr)"
-      name dict at: key put: entry.
    ]
+   printOn: file [^ file << self prefix << name << ' ' << expr << ')']
 
-   "No interpret return for this function?"
-   interp[]  
-   printOn: file [^ file << self prefix << key << ' ' << entry << ')']
+   interp[name put: expr value]
 ].
 
 Stmt subclass: GotoStmt [
    |label|
    GotoStmt class >> new: stmt [^ super new init: stmt]
-   init: stmt [label := stmt at: 2.]
+   init: stmt [label := stmt at: 2]
    printOn: file [^ file << self prefix << label << ')']
-   interp [stmtNr := labelDict at: label.]
+   interp[stmtNr := labelDict at: label]
 ].
 
 Stmt subclass: IfStmt [
@@ -210,6 +196,8 @@ Stmt subclass: IfStmt [
       label := stmt at: 3.
    ]
    printOn: file [^ file << self prefix << expr << ' ' << label << ')']
+
+   interp[expr value ifTrue: [stmtNr := labelDict at: label]]
 ].
 
 Stmt subclass: InputStmt [
@@ -281,7 +269,6 @@ Stmt extend [
       stmt size = 0 ifTrue: [stmtSym := #null]
                     ifFalse: [stmtSym := stmt at: 1].
       stmtClass := stmtDict at: stmtSym.
-      "labelDict at: (stmt at: 0) put: 1."
       ^ stmtClass new: stmt.
    ]
 ]
@@ -292,20 +279,12 @@ MiniBasic subclass: Interpreter [
    init: program [
       statements := Array new: program size.
       1 to: program size do: [:index|
-         |stmt label parsed|
-         stmt := (program at: index) at: 3.
-         "(label at: 2) ifNotNil: [label := label at: 2]
-                       ifNil: [label := label]."
-         "label removeFirst."
-	 stmt := Stmt parse: stmt.
-         label := #dummylabel.
-         stmt dict at: label put: index.
-	 "stdout << 'test' << nl."
+         |stmt parsed|
          ((program at: index) at: 2) ifNotNil:[
-                label := ((program at: index) at: 2).
-                stdout << label << nl.
-                stmt dict at: label put: index].
-         statements at: index put: (stmt).
+            (Stmt.labelDict) at: ((program at: index) at: 2) put: index.
+         ].
+         stmt := (program at: index) at: 3.
+         statements at: index put: (Stmt parse: stmt).
       ].
    ]
 
