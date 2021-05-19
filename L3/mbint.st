@@ -216,9 +216,9 @@ Stmt subclass: InputStmt [
    interp [
       inputVars do: [:var|
          |value|
+         (stdinNumbers atEnd) ifTrue: [VarExpr.varDict at: #eof put: 1.0].
          value := stdinNumbers nextNumber.
-         stdout << thisContext method << ' '
-                << var << ': ' << value << nl.
+         var put: value.
       ].
    ]
 ].
