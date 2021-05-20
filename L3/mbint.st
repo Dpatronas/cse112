@@ -1,3 +1,6 @@
+-- Despina Patronas (dpatrona@ucsc.edu)
+-- Adam Barsness    (abarsnes@ucsc.edu)
+
 #!/afs/cats.ucsc.edu/courses/cse112-wm/usr/smalltalk/bin/gst -f
 "$Id: mbint.st,v 1.1 2021-05-06 17:48:48-07 - - $"
 
@@ -57,6 +60,7 @@ MiniBasic subclass: Expr [ "abstract base class"
    nan := 0.0 / 0.0.
    printOn: file [^ file << self prefix << ')']
    value [MiniBasic unimplemented: self. ^ nan]
+   value2 [MiniBasic unimplemented: self. ^ nan] "workaround for #aput"
 ].
 
 Expr subclass: NumExpr [
@@ -64,7 +68,7 @@ Expr subclass: NumExpr [
    NumExpr class >> new: val [^ super new init: val]
    init: val [value := val + 0.0d0]
    printOn: file [^ file << self prefix << value << ')']
-   value [^ value + 0.0]
+   value [^ value + 0.0.]
 ].
 
 Expr subclass: VarExpr [
@@ -79,7 +83,7 @@ Expr subclass: VarExpr [
    init: var [variable := var]
    printOn: file [^ file << self prefix << variable << ')']
    put: val [varDict at: variable put: val]
-   value [^ varDict at: variable ifAbsent: [0.0]]
+   value [^ varDict at: variable ifAbsent: [0.0].]
 ].
 
 Expr subclass: UnopExpr [
@@ -109,16 +113,47 @@ Expr subclass: BinopExpr [
       ^ file << self prefix << oper << ' ' << opnd1
              << ' ' << opnd2 << ')'.
    ]
+ 
+   value[
+      (oper = #aput) ifFalse:[
+         (oper = #aget) ifTrue:[
+            opnd1 aget: (opnd2 value asInteger).
+            ^opnd1 value].
+         (oper = #aget) ifFalse:[
+            ^((opnd1 value) perform: oper with: (opnd2 value))].
+      ].
+      (oper = #aput) ifTrue:[
+         ^opnd1]. "Return the resolved ArrayExpr object if #aput operand"
+   ]
 
-   value[^((opnd1 value) perform: oper with: (opnd2 value))]
+   value2[
+      (oper = #aput) ifFalse:[^nan].
+      (oper = #aput) ifTrue:[^opnd2 value]. 
+   ]
 ].
 
 Expr subclass: ArrayExpr [
-   |arrayName|
+   |arrayName testArray getValue|
    arrayDict := Dictionary new.
    ArrayExpr class >> new: var [^ super new init: var]
    init: var [arrayName := var]
    printOn: file [^ file << self prefix << arrayName << ')']
+   put: somearray [arrayDict at: arrayName put: somearray.]
+   aput: index with: val[	
+      (arrayDict at: arrayName) at: index put: val. 
+   ]
+   aget: index[
+       "stdout << 'DICTIONARY: ' << arrayDict << nl."
+       getValue := (arrayDict at: arrayName) at: (index + 1).
+       "stdout << 'GET VALUE AT: ' << index << ' IS ' << getValue << nl."
+   ]
+   "aset: val[
+      Allows setting the evaluated value given the previously 'put' indexes of #aput"
+      "stdout << 'Error happens here' << nl.
+      ((arrayDict at: tableIndex) at: arrayIndex) put: val.      
+      stdout << 'Error does not happen here' << nl.
+   ]"
+   value[^getValue]
 ].
 
 Expr extend [
@@ -159,13 +194,14 @@ MiniBasic subclass: Stmt [ "abstract base class"
 ].
 
 Stmt subclass: DimStmt [
-   |name size|
+   |name size x|
    DimStmt class >> new: stmt [^ super new init: stmt]
    init: stmt [
       name := ArrayExpr new: (stmt at: 2).
       size := Expr parse: (stmt at: 3).
    ]
-   printOn: file [^ file << self prefix << name << ' ' << size << ')']
+   printOn: file [^ file << self prefix << name << ' ' << size << ')'] 
+   interp[name put: (Array new: (size value asInteger))]
 ].
 
 Stmt subclass: LetStmt [
@@ -177,7 +213,14 @@ Stmt subclass: LetStmt [
    ]
    printOn: file [^ file << self prefix << name << ' ' << expr << ')']
 
-   interp[name put: expr value]
+   interp[
+      (name isMemberOf: BinopExpr) ifFalse:[name put: expr value.].
+      (name isMemberOf: BinopExpr) ifTrue:[
+         (name value) aput: ((name value2 asInteger) + 1) with: (expr value).
+
+      ].
+      "If name's value is not a number then by inferece it is an ArrayExpr"
+   ]
 ].
 
 Stmt subclass: GotoStmt [
