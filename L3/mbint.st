@@ -1,8 +1,8 @@
--- Despina Patronas (dpatrona@ucsc.edu)
--- Adam Barsness    (abarsnes@ucsc.edu)
-
 #!/afs/cats.ucsc.edu/courses/cse112-wm/usr/smalltalk/bin/gst -f
 "$Id: mbint.st,v 1.1 2021-05-06 17:48:48-07 - - $"
+
+"-- Despina Patronas (dpatrona@ucsc.edu)"
+"-- Adam Barsness    (abarsnes@ucsc.edu)"
 
 Object subclass: NumberStream [
    |atEndFlag stream buffer|
@@ -122,8 +122,8 @@ Expr subclass: BinopExpr [
          (oper = #aget) ifFalse:[
             ^((opnd1 value) perform: oper with: (opnd2 value))].
       ].
-      (oper = #aput) ifTrue:[
-         ^opnd1]. "Return the resolved ArrayExpr object if #aput operand"
+      "Return the resolved ArrayExpr object if #aput operand"
+      (oper = #aput) ifTrue:[^opnd1].
    ]
 
    value2[
@@ -139,20 +139,13 @@ Expr subclass: ArrayExpr [
    init: var [arrayName := var]
    printOn: file [^ file << self prefix << arrayName << ')']
    put: somearray [arrayDict at: arrayName put: somearray.]
-   aput: index with: val[	
+   aput: index with: val[
       (arrayDict at: arrayName) at: index put: val. 
    ]
    aget: index[
-       "stdout << 'DICTIONARY: ' << arrayDict << nl."
        getValue := (arrayDict at: arrayName) at: (index + 1).
-       "stdout << 'GET VALUE AT: ' << index << ' IS ' << getValue << nl."
    ]
-   "aset: val[
-      Allows setting the evaluated value given the previously 'put' indexes of #aput"
-      "stdout << 'Error happens here' << nl.
-      ((arrayDict at: tableIndex) at: arrayIndex) put: val.      
-      stdout << 'Error does not happen here' << nl.
-   ]"
+   
    value[^getValue]
 ].
 
@@ -216,10 +209,9 @@ Stmt subclass: LetStmt [
    interp[
       (name isMemberOf: BinopExpr) ifFalse:[name put: expr value.].
       (name isMemberOf: BinopExpr) ifTrue:[
-         (name value) aput: ((name value2 asInteger) + 1) with: (expr value).
-
+         (name value) aput: ((name value2 asInteger) + 1) 
+         with: (expr value).
       ].
-      "If name's value is not a number then by inferece it is an ArrayExpr"
    ]
 ].
 
@@ -259,9 +251,12 @@ Stmt subclass: InputStmt [
    interp [
       inputVars do: [:var|
          |value|
-         (stdinNumbers atEnd) ifTrue: [VarExpr.varDict at: #eof put: 1.0].
+         (stdinNumbers atEnd) ifTrue: [
+            VarExpr.varDict at: #eof put: 1.0].
          value := stdinNumbers nextNumber.
          var put: value.
+         (stdinNumbers atEnd) ifTrue: [
+            VarExpr.varDict at: #eof put: 1.0].
       ].
    ]
 ].
