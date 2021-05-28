@@ -134,6 +134,25 @@ sub load_Makefile() {
 sub make_goal($) {
    my ($goal) = @_;
    ### fill in stuff here and delete this comment
+   # 
+   # if $goal.visited() == true: return /*check a graph?*/
+   # else: set $goal.visited() true. continue. /*add to graph?*/
+   #
+   # if $goal ?isTarget == false: 
+   # 	if $goal ?isFile == true: return modtime time
+   # 	else: print "No rule to make...". exit 1.
+   # else: (not a target): continue
+   #
+   # for each prerequisite:
+   # 	make_goal(prerequisite) /*recursion on prerequisite*/
+   # 	Remember newest total modtime?
+   # 	if no prequisites: modtime = 0
+   #
+   # if target file DNE || newest prequisite newer than target modtime:
+   # 	run all commands
+   #
+   # if commands built target file successfully: return modtime
+   # else: return 0
 }
 
 scan_cmdline;
