@@ -147,24 +147,24 @@ sub make_goal($) {
    my ($goal) = @_;
    #print "$goal\n";
 
-   my $prereq = $GRAPH{$goal}{PREREQS};
-   my $commds = $GRAPH{$_[0]}{COMMANDS}; 
+   my $prereq = $GRAPH{$goal}{PREREQS};  #array of prereq
+   my $commds = $GRAPH{$goal}{COMMANDS}; #array of commands 
 
-   if (defined $prereq->[0]) {
+   if (defined $prereq->[0]) {          #check first index
       #print "there is a prereq ";
       foreach my $key(@$prereq) {
          make_goal($key);
       }
       foreach my $key (@$commds) {
          my %hash = %$key;
-         run_command(%hash);
+         run_command($hash{CMD});
       }
    }
    else {
       #print "no prereq\n";
       foreach my $key (@$commds) {
          my %hash = %$key;
-         run_command(%hash);
+         run_command($hash{CMD});
       }
    }       
 }
