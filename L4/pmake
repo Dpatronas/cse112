@@ -61,21 +61,32 @@ my %strsignal = (
 # Returns 0 or undef when everything runs fine
 
 sub run_command (@) {   
-   # modify print command..
    my (@command) = @_;
-   print "@command\n"; #need to determine is command needs to be made
+   
+   # Check for the @
+   my $remove_at = substr $command[0], 7;
+   my $at_sym = substr $command[0], 0,1;
 
-   my $status = eval {no warnings; system @command};
+   # Found at run_command without @ echo
+   if ($at_sym eq "@") {
+      sub run_command(@); 
+      run_command($remove_at);
+   }
+   # Run command normally with print
+   else {
+      print "@command\n"; #need to determine if command needs to be made
+      my $status = eval {no warnings; system @command};
 
-   # return undef means exit(0) success exit
-   return undef unless $status;
-   return "$!" if $status == -1;
-   my $signal = $status & 0x7F;
-   my $core = $status & 0x80;
-   my $exit = ($status >> 8) & 0xFF;
-   return "Error $exit" unless $signal || $core;
-   return ($strsignal{$signal} || "Invalid Signal Number $signal")
-        . ($core ? " (core dumped)" : "");
+      # return undef means exit(0) success exit
+      return undef unless $status;
+      return "$!" if $status == -1;
+      my $signal = $status & 0x7F;
+      my $core = $status & 0x80;
+      my $exit = ($status >> 8) & 0xFF;
+      return "Error $exit" unless $signal || $core;
+      return ($strsignal{$signal} || "Invalid Signal Number $signal")
+           . ($core ? " (core dumped)" : "");
+   }
 }
 
 my $MAKECMDGOALS;
@@ -147,16 +158,18 @@ sub make_goal($) {
    my ($goal) = @_;
    #print "$goal\n";
 
-   my $prereq = $GRAPH{$goal}{PREREQS};  #array of prereq
-   my $commds = $GRAPH{$goal}{COMMANDS}; #array of commands 
+   my $prereq = $GRAPH{$goal}{PREREQS};  # prereq
+   my $commds = $GRAPH{$goal}{COMMANDS}; # commands 
 
-   if (defined $prereq->[0]) {          #check first index
+   if (defined $prereq->[0]) {           #check first index
       #print "there is a prereq ";
-      foreach my $key(@$prereq) {
+      foreach my $key (@$prereq) {
+         sub make_goal($);               #fwd declaration
          make_goal($key);
       }
       foreach my $key (@$commds) {
          my %hash = %$key;
+         # print "(with a prereq ) the cmd : $hash{CMD} \n";
          run_command($hash{CMD});
       }
    }
@@ -164,6 +177,7 @@ sub make_goal($) {
       #print "no prereq\n";
       foreach my $key (@$commds) {
          my %hash = %$key;
+         # print "(without prereq) cmd : $hash{CMD} \n ";
          run_command($hash{CMD});
       }
    }       
