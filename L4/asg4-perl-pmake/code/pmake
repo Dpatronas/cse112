@@ -76,6 +76,7 @@ my $Makefile = "Makefile";
 my %OPTIONS;
 my %GRAPH;
 my %MACROS;
+my %VISITED; # Bool array for tracking graph traversal
 
 sub usage() { die "Usage: $0 [-mgd] [target]\n" }
 sub stop($) { die "$Makefile:@_. Stop.\n" }
@@ -141,13 +142,21 @@ sub make_goal($) {
    my ($goal) = @_;
    ### fill in stuff here and delete this comment
    # 
-   # if $goal.visited() == true: return /*check a graph?*/
-   # else: set $goal.visited() true. continue. /*add to graph?*/
-   #
-   # if (exists $GRAPH{$goal}) //if $goal ?isTarget == false:
-   # 	if $goal ?isFile == true: return modtime time
-   # 	else: print "No rule to make...". exit 1.
-   # else: (not a target): continue
+   if ($VISITED{$goal}){
+      return; 
+   }
+   else{ 
+      $VISITED{$goal} = true;
+      continue;
+   }
+   
+   if (exists $GRAPH{$goal}){ #if $goal ?isTarget == false:
+   #  if $goal ?isFile == true: return modtime time
+   #  else: print "No rule to make...". exit 1.
+   }
+   else{
+      continue
+   }
    #
    # for each prerequisite:
    # 	make_goal(prerequisite) /*recursion on prerequisite*/
