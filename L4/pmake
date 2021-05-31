@@ -1,6 +1,9 @@
 #!/usr/bin/perl
 # $Id: pmake,v 1.37 2021-02-24 13:17:46-08 - - $
 
+# Despina Patronas (dpatrona)
+# Adam Barsness    (abarsnes)
+
 $0 =~ s|.*/||;
 use Getopt::Std;
 use Data::Dumper;
