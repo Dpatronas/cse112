@@ -74,7 +74,7 @@ sub run_command (@) {
    }
    # Run command normally with print
    else {
-      print "@command\n"; #need to determine if command needs to be made
+      print "@command\n";
       my $status = eval {no warnings; system @command};
 
       # return undef means exit(0) success exit
@@ -96,7 +96,7 @@ my $Makefile = "Makefile";
 my %OPTIONS; # options defined
 my %GRAPH;   # dependencies
 my %MACROS;  # defined macros
-my %VISITED; # Hash for visited goals. Set the visited goal: ${VISITED} = 1
+my %VISITED; # Hash for visited goals. Set vist goal: ${VISITED} = 1
 
 sub usage() { die "Usage: $0 [-mgd] [target]\n" }
 sub stop($) { die "$Makefile:@_. Stop.\n" }
@@ -154,31 +154,54 @@ sub load_Makefile() {
    close $mkfile;
 }
 
+sub get_time($) {
+   my ($filename) = @_;
+   my @stat = stat $filename;
+   return @stat ? $stat[9] : undef;
+}
+
 sub make_goal($) {
    my ($goal) = @_;
-   #print "$goal\n";
+   my $prereq = $GRAPH{$goal}{PREREQS};  # ref prereq array
+   my $commds = $GRAPH{$goal}{COMMANDS}; # ref commands array
 
-   my $prereq = $GRAPH{$goal}{PREREQS};  # prereq
-   my $commds = $GRAPH{$goal}{COMMANDS}; # commands 
+   sub make_goal($);          # fwd declaration fnx
 
-   if (defined $prereq->[0]) {           #check first index
-      #print "there is a prereq ";
-      foreach my $key (@$prereq) {
-         sub make_goal($);               #fwd declaration
-         make_goal($key);
+   # Check if goal is !target
+   if (!defined $goal) {
+      
+      # Check if goal is a file 
+      my $findfile = system("find $goal");
+      if (-e $findfile) {
+         print "found file: $findfile\n";
+         return get_time($findfile);      # Return modtime
       }
-      foreach my $key (@$commds) {
-         my %hash = %$key;
-         # print "(with a prereq ) the cmd : $hash{CMD} \n";
-         run_command($hash{CMD});
+      else {
+         print "file not found";
+      } 
+   }
+
+   # For each prereq (check if prereq exists or not)
+   if (defined $prereq->[0]) {         # deref check indx0 prereq arr
+
+      # Prereq exists
+      foreach my $pre (@$prereq) {     # iterate prereq arr indxs
+         make_goal($pre);              # Recurs make on indexes
+      }
+      # Check command on prereq
+      foreach my $cmd (@$commds) {
+         my %cmdhash = %$cmd;          # Make a hash of cmds
+         # print "cmd p : $cmdhash{CMD}\n";
+         run_command($cmdhash{CMD});   # run cmd
       }
    }
+   # Check Commands (no prereq found)
    else {
       #print "no prereq\n";
-      foreach my $key (@$commds) {
-         my %hash = %$key;
-         # print "(without prereq) cmd : $hash{CMD} \n ";
-         run_command($hash{CMD});
+      foreach my $cmd (@$commds) {
+         my %cmdhash = %{$cmd};        # make hash of cmds   
+         # print "cmd !p: $hash{CMD}";
+         run_command($cmdhash{CMD});   # run cmd
       }
    }       
 }
