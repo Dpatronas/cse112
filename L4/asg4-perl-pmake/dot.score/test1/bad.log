@@ -1,0 +1,18 @@
+Before: bad.c
+After: bad.c
+Before: HASH(0x1fa76a8)
+After: HASH(0x1fa76a8)
+gcc bad.c -o bad
+bad.c:3:1: error: unknown type name ‘This’
+ This is a bad file.
+ ^~~~
+bad.c:3:9: error: expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘a’
+ This is a bad file.
+         ^
+bad.c:3:9: error: unknown type name ‘a’
+bad.c:4:7: warning: missing terminating ' character
+ cc won't compile it.
+       ^
+bad.c:4:7: error: missing terminating ' character
+ cc won't compile it.
+       ^~~~~~~~~~~~~~

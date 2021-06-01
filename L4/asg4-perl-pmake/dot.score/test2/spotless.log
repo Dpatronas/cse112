@@ -1,0 +1,3 @@
+Before: HASH(0xec7ac8)
+After: HASH(0xec7ac8)
+- rm hello.o main.o hello

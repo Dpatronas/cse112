@@ -166,7 +166,20 @@ sub get_time($) {
 sub make_goal($) {
    my ($goal) = @_;
    my $prereq = $GRAPH{$goal}{PREREQS};  # ref prereq array
+   #foreach my $pre (@$prereq){
+       #print "Before: $pre\n";
+       #$pre =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||""/ge;
+       #$pre =~ s/$</$prereq/;
+       #$pre =~ s/\$\$/\$/;
+       #print "After: $pre\n";
+   #}
    my $commds = $GRAPH{$goal}{COMMANDS}; # ref commands array
+   #foreach my $cmd (@$commds){
+       #print "Before: $cmd\n";
+       #$cmd =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||""/ge; 
+       #$cmd =~ s/\$\$/\$/;
+       #print "After: $cmd\n";
+   #}
 
    sub make_goal($);          # fwd declaration fnx
 
@@ -187,6 +200,15 @@ sub make_goal($) {
    # For each prereq (check if prereq exists or not)
    if (defined $prereq->[0]) {         # deref check indx0 prereq arr
 
+      foreach my $pre (@$prereq){
+          print "Before: $pre\n";
+          $pre =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||""/ge;
+          #$pre =~ s/$</$prereq/;
+          $pre =~ s/\$\$/\$/;
+          print "After: $pre\n";
+      }
+
+
       # Prereq exists
       foreach my $pre (@$prereq) {     # iterate prereq arr indxs
          make_goal($pre);              # Recurs make on indexes
@@ -201,7 +223,7 @@ sub make_goal($) {
    # Check Commands (no prereq found)
    else {
       #print "no prereq\n";
-      foreach my $cmd (@$commds) {
+      foreach my $cmd (@$commds) {  
          my %cmdhash = %{$cmd};        # make hash of cmds   
          # print "cmd !p: $hash{CMD}";
          run_command($cmdhash{CMD});   # run cmd

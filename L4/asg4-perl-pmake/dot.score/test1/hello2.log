@@ -1,0 +1,5 @@
+Before: hello.c
+After: hello.c
+Before: HASH(0x18dbf40)
+After: HASH(0x18dbf40)
+gcc hello.c -o hello
