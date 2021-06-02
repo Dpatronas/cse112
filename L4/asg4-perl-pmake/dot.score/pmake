@@ -60,6 +60,12 @@ my %strsignal = (
    31 => "Bad system call",
 );
 
+### Hashes ###
+my %OPTIONS; # options defined
+my %GRAPH;   # dependencies
+my %MACROS;  # defined macros
+my %VISITED; # Hash for visited goals. Set vist goal: ${VISITED} = 1
+
 # When a command is detected, run_command to execute cmd
 # Returns 0 or undef when everything runs fine
 
@@ -77,6 +83,8 @@ sub run_command (@) {
    }
    # Run command normally with print
    else {
+      #@command =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||@command/ge;
+      #@command =~ s/\$\$/\$/;            
       print "@command\n";
       my $status = eval {no warnings; system @command};
 
@@ -94,12 +102,6 @@ sub run_command (@) {
 
 my $MAKECMDGOALS;
 my $Makefile = "Makefile";
-
-### Hashes ###
-my %OPTIONS; # options defined
-my %GRAPH;   # dependencies
-my %MACROS;  # defined macros
-my %VISITED; # Hash for visited goals. Set vist goal: ${VISITED} = 1
 
 sub usage() { die "Usage: $0 [-mgd] [target]\n" }
 sub stop($) { die "$Makefile:@_. Stop.\n" }
@@ -139,8 +141,13 @@ sub load_Makefile() {
       if (!$target && $line =~ m/^\s*(\S+)\s*=\s*(.*?)\s*$/) {
          $MACROS{$1} = {LINE=> $., VALUE=> $2};
       }elsif ($line =~ m/^(\S+)\s*:\s*(.*)/) {
-         $target = $1;
-         $GRAPH{$target}{PREREQS} = [split ' ', $2];
+         $target = $1; 						# Keep default if not macro
+         $target =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$target/ge;	# Macro replace
+         $target =~ s/\$\$/\$/; 				# Regex formatting
+         my $tempprereq = $2;
+         $tempprereq =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$tempprereq/ge;  # Macro replace
+         $tempprereq =~ s/\$\$/\$/;                             # Regex formatting        
+         $GRAPH{$target}{PREREQS} = [split ' ', $tempprereq];
          $GRAPH{$target}{LINE} = $.;
          $MAKECMDGOALS = $target unless $MAKECMDGOALS;
       }elsif ($line =~ m/^\t(.*)/) {
@@ -163,32 +170,34 @@ sub get_time($) {
    return @stat ? $stat[9] : undef;
 }
 
-sub mac_replace(){
-   for my $target (sort keys %GRAPH) {
-      my $prereq = $GRAPH{$target}{PREREQS};
-      my $commds = $GRAPH{$target}{COMMANDS}; # ref commands array
 
-      foreach my $pre (@$prereq){
+#sub mac_replace(){
+   #for my $target (sort keys %GRAPH) {
+      #my $prereq = $GRAPH{$target}{PREREQS};
+      #my $commds = $GRAPH{$target}{COMMANDS}; # ref commands array
+
+      #foreach my $pre (@$prereq){
          #print "Before: $pre\n";
-         $pre =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$pre/ge;
-         $pre =~ s/\$\$/\$/;
+         #$pre =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$pre/ge;
+         #$pre =~ s/\$\$/\$/;
          #print "After: $pre\n";
-      }
-      foreach my $cmd (@$commds){
-         my %cmdhash = %{$cmd}; 
-         foreach my $subcmd ($cmdhash{CMD}){
+      #}
+      #foreach my $cmd (@$commds){
+         #my %cmdhash = %{$cmd}; 
+         #foreach my $subcmd ($cmdhash{CMD}){
             #print "Before: $subcmd\n";
-            $subcmd =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$subcmd/ge;
-            $subcmd =~ s/\$\$/\$/;
+            #$subcmd =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$subcmd/ge;
+            #$subcmd =~ s/\$\$/\$/;
             #print "After: $subcmd\n";
-         }
-      }
+         #}
+         #$cmd = $cmdhash{CMD};
+      #}
       #print "Before: $target\n";
-      $target =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$target/ge;
-      $target =~ s/\$\$/\$/;
+      #$target =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$target/ge;
+      #$target =~ s/\$\$/\$/;
       #print "After: $target\n";
-   }
-}
+   #}
+#}
 
 sub make_goal($) {
    my ($goal) = @_;
@@ -245,6 +254,8 @@ sub make_goal($) {
       foreach my $cmd (@$commds) {
          my %cmdhash = %$cmd;          # Make a hash of cmds
          # print "cmd p : $cmdhash{CMD}\n";
+         $cmd =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$cmd/ge;
+         $cmd =~ s/\$\$/\$/;
          run_command($cmdhash{CMD});   # run cmd
       }
    }
@@ -252,7 +263,9 @@ sub make_goal($) {
    else {
       #print "no prereq\n";
       foreach my $cmd (@$commds) {  
-         my %cmdhash = %{$cmd};        # make hash of cmds   
+         my %cmdhash = %{$cmd};        # make hash of cmds
+         $cmdhash{CMD} =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$cmdhash{CMD}/ge;
+         $cmdhash{CMD} =~ s/\$\$/\$/;
          # print "cmd !p: $hash{CMD}";
          run_command($cmdhash{CMD});   # run cmd
       }
@@ -266,6 +279,6 @@ dump_hash ("MACROS", %MACROS) if $OPTIONS{'m'};
 dump_hash ("GRAPH", %GRAPH) if $OPTIONS{'g'};
 dump_graph if $OPTIONS{'d'};
 
-mac_replace;
+#mac_replace;
 make_goal ($MAKECMDGOALS);
 
