@@ -1,2 +1,5 @@
-Before: ${EXECBIN}
-After: hello
+gcc -g main.o hello.o -o hello
+gcc: error: main.o: No such file or directory
+gcc: error: hello.o: No such file or directory
+gcc: fatal error: no input files
+compilation terminated.

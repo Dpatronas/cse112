@@ -1,1 +1,5 @@
-checksource: TOTAL COMPLAINTS: 0
+checksource: line length > 72 characters
+pmake: 5 errors: lines 144, 147, 151--152, 283
+checksource: non-ASCII character \x09 = \011 = ^I = \t (tab)
+pmake: 13 errors: lines 146--146, 148--148, 183--183
+checksource: TOTAL COMPLAINTS: 18

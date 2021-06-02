@@ -141,19 +141,24 @@ sub load_Makefile() {
       if (!$target && $line =~ m/^\s*(\S+)\s*=\s*(.*?)\s*$/) {
          $MACROS{$1} = {LINE=> $., VALUE=> $2};
       }elsif ($line =~ m/^(\S+)\s*:\s*(.*)/) {
-         $target = $1; 						# Keep default if not macro
-         $target =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$target/ge;	# Macro replace
-         $target =~ s/\$\$/\$/; 				# Regex formatting
+         #$line =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$line/ge; # Macro replace
          my $tempprereq = $2;
+         $target = $1; 						# Keep default if not macro
+         $target =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$target/ge;# Macro replace
+         #$target =~ s/\$\$/\$/; 				# Regex formatting
+         #my $tempprereq = $2;
+         #print "Temp prereq: $tempprereq\n";
          $tempprereq =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$tempprereq/ge;  # Macro replace
-         $tempprereq =~ s/\$\$/\$/;                             # Regex formatting        
+         ##$tempprereq =~ s/\$\$/\$/;                             # Regex formatting        
          $GRAPH{$target}{PREREQS} = [split ' ', $tempprereq];
          $GRAPH{$target}{LINE} = $.;
          $MAKECMDGOALS = $target unless $MAKECMDGOALS;
       }elsif ($line =~ m/^\t(.*)/) {
          if (defined $target) {
+            my $tempcmd = $1;
+            $tempcmd =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$tempcmd/ge;
             push @{$GRAPH{$target}{COMMANDS}},
-                 {LINE=> $., CMD=> $1};
+                 {LINE=> $., CMD=> $tempcmd};
          }else {
             stop "$.: Command before first target";
          }
@@ -171,49 +176,60 @@ sub get_time($) {
 }
 
 
-#sub mac_replace(){
-   #for my $target (sort keys %GRAPH) {
-      #my $prereq = $GRAPH{$target}{PREREQS};
-      #my $commds = $GRAPH{$target}{COMMANDS}; # ref commands array
+sub mac_replace(){
+   for my $target (sort keys %GRAPH) {
+      my $prereq = $GRAPH{$target}{PREREQS};
+      my $commds = $GRAPH{$target}{COMMANDS};  # ref commands array
+      #print "CMD before: $commds\n";			# check cmd
 
-      #foreach my $pre (@$prereq){
+      foreach my $pre (@$prereq){
          #print "Before: $pre\n";
-         #$pre =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$pre/ge;
-         #$pre =~ s/\$\$/\$/;
+         $pre =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$pre/ge;
+         $pre =~ s/\$\$/\$/;
          #print "After: $pre\n";
-      #}
-      #foreach my $cmd (@$commds){
-         #my %cmdhash = %{$cmd}; 
+      }
+      foreach my $cmdhash (@$commds){
+         #print "CMDHASH Before: $cmdhash\n";
+        
+         #my $cmd = $cmdhash{1};
+         #print "CMD Before: $cmdhash->{CMD}";   
+
          #foreach my $subcmd ($cmdhash{CMD}){
             #print "Before: $subcmd\n";
             #$subcmd =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$subcmd/ge;
-            #$subcmd =~ s/\$\$/\$/;
+            ##$subcmd =~ s/\$\$/\$/;
             #print "After: $subcmd\n";
+            #print "String Before: $cmdstring\n";
+            #$cmdstring = join(" ", $cmdstring, $subcmd);
+            #print "String After: $cmdstring\n";
          #}
-         #$cmd = $cmdhash{CMD};
-      #}
+         #$cmd = %cmdhash;
+      }
+      
+      #$GRAPH{$target}{PREREQS};
       #print "Before: $target\n";
       #$target =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$target/ge;
       #$target =~ s/\$\$/\$/;
       #print "After: $target\n";
-   #}
-#}
+      #$GRAPH{$target}{PREREQS} = [split ' ', $prereq];
+   }
+}
 
 sub make_goal($) {
    my ($goal) = @_;
    my $prereq = $GRAPH{$goal}{PREREQS};  # ref prereq array
    my $commds = $GRAPH{$goal}{COMMANDS}; # ref commands array
 
-   print "GOAL TEST: $goal\n";
+   #print "GOAL TEST: $goal\n";
    
    foreach my $pre (@$prereq){
-      print "PRE TEST: $pre\n";
+      #print "PRE TEST: $pre\n";
       #$pre =~ s/\${(.*?)}/$MACROS{$1}{PRE}||$pre/ge;
       #$pre =~ s/\$\$/\$/;
       #print "After: $pre\n";
    }
    foreach my $cmd (@$commds){
-      print "CMD TEST: $cmd\n";
+      #print "CMD TEST: $cmd\n";
       #$cmd =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||""/ge; 
       #$cmd =~ s/\$\$/\$/;
       #print "After: $cmd\n";
@@ -254,8 +270,8 @@ sub make_goal($) {
       foreach my $cmd (@$commds) {
          my %cmdhash = %$cmd;          # Make a hash of cmds
          # print "cmd p : $cmdhash{CMD}\n";
-         $cmd =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$cmd/ge;
-         $cmd =~ s/\$\$/\$/;
+         #$cmd =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$cmd/ge;
+         #$cmd =~ s/\$\$/\$/;
          run_command($cmdhash{CMD});   # run cmd
       }
    }
@@ -264,8 +280,8 @@ sub make_goal($) {
       #print "no prereq\n";
       foreach my $cmd (@$commds) {  
          my %cmdhash = %{$cmd};        # make hash of cmds
-         $cmdhash{CMD} =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$cmdhash{CMD}/ge;
-         $cmdhash{CMD} =~ s/\$\$/\$/;
+         #$cmdhash{CMD} =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$cmdhash{CMD}/ge;
+         #$cmdhash{CMD} =~ s/\$\$/\$/;
          # print "cmd !p: $hash{CMD}";
          run_command($cmdhash{CMD});   # run cmd
       }
@@ -275,6 +291,9 @@ sub make_goal($) {
 scan_cmdline;
 load_Makefile;
 
+dump_graph if $OPTIONS{'d'};
+
+mac_replace;
 dump_hash ("MACROS", %MACROS) if $OPTIONS{'m'};
 dump_hash ("GRAPH", %GRAPH) if $OPTIONS{'g'};
 dump_graph if $OPTIONS{'d'};
