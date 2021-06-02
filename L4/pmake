@@ -4,6 +4,9 @@
 # Despina Patronas (dpatrona)
 # Adam Barsness    (abarsnes)
 
+use strict;
+use warnings;
+
 $0 =~ s|.*/||;
 use Getopt::Std;
 use Data::Dumper;
@@ -184,24 +187,36 @@ my $currentcheck = 1;
 
 sub make_goal($) {
    my ($goal) = @_;
+   sub make_goal($);                     # fwd declaration fnx
+  
+   # Check if goal is !target
+   if(not(exists $GRAPH{$goal})){
+      if(-e $goal){
+         return get_time($goal);
+      }
+      else{
+         print "make: *** No rule to make target '$goal'. Stop.\n";
+         exit(1);
+      }
+   }
+
    my $prereq = $GRAPH{$goal}{PREREQS};  # ref prereq array
    my $commds = $GRAPH{$goal}{COMMANDS}; # ref commands array
-   sub make_goal($);                     # fwd declaration fnx
-   
+
    if($updatecheck){
       if ($goal eq "all"){
-         foreach my $pre (@$prereq) {     
+         foreach my $pre (@$prereq) {
             if (not(-e $pre)) {
                $currentcheck = 0;
             }
-         }    
+         }
       }
       else{
          if (not(-e $goal)) {
             $currentcheck = 0;
          }
       }
-        
+
       if($currentcheck){
          if($goal eq "all"){
             print "make: Nothing to be done for 'all'.\n";
@@ -211,11 +226,9 @@ sub make_goal($) {
          }
          return;
       }
-        $updatecheck = 0;
    }
+   
 
-   # Check if goal is !target
-#         print "make: *** No rule to make target '$goal'. Stop.";
 
    # For each prereq (check if prereq exists or not)
    if (defined $prereq->[0]) {         # deref check indx0 prereq arr
@@ -234,7 +247,10 @@ sub make_goal($) {
       #print "no prereq\n";
       foreach my $cmd (@$commds) {  
          my %cmdhash = %{$cmd};        # make hash of cmds
-         run_command($cmdhash{CMD});   # run cmd
+         if (defined run_command($cmdhash{CMD})
+                      and substr($cmdhash{CMD},0,1) eq '-') {
+            print "pmake: [Makefile $cmdhash{LINE}: $goal] Error 1 (ignored)\n";
+         }
       }
    }       
 }

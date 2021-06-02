@@ -1,3 +1,23 @@
+Check 1
+Check 3
+Check 1
+Check 3
+Check 1
+Check 3
+Check 1
+Check 3
+Check 4
+Check 1
+Check 3
+Check 4
+Check 1
+Check 3
+Check 1
+Check 3
+Check 4
+Check 1
+Check 3
+Check 4
 gcc -g main.o hello.o -o hello
 gcc: error: main.o: No such file or directory
 gcc: error: hello.o: No such file or directory

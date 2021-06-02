@@ -1,5 +1,11 @@
 #!/usr/bin/perl
-# $Id: pmake,v 1.40 2021-05-24 22:02:38-07 - - $
+# $Id: pmake,v 1.37 2021-02-24 13:17:46-08 - - $
+
+# Despina Patronas (dpatrona)
+# Adam Barsness    (abarsnes)
+
+use strict;
+use warnings;
 
 $0 =~ s|.*/||;
 use Getopt::Std;
@@ -57,25 +63,54 @@ my %strsignal = (
    31 => "Bad system call",
 );
 
-sub run_command ($) {
-   my ($command) = @_;
-   print "$command\n";
-   my $status = eval {no warnings; system $command};
-   return undef unless $status;
-   return "$!" if $status == -1;
-   my $signal = $status & 0x7F;
-   my $core = $status & 0x80;
-   my $exit = ($status >> 8) & 0xFF;
-   return "Error $exit" unless $signal || $core;
-   return ($strsignal{$signal} || "Invalid Signal Number $signal")
-        . ($core ? " (core dumped)" : "");
+### Hashes ###
+my %OPTIONS; # options defined
+my %GRAPH;   # dependencies
+my %MACROS;  # defined macros
+my %VISITED; # Hash for visited goals. Set vist goal: ${VISITED} = 1
+
+# When a command is detected, run_command to execute cmd
+# Returns 0 or undef when everything runs fine
+
+sub run_command (@) {   
+   my (@command) = @_;
+   sub run_command(@); 
+
+   # Check @ echo and -
+   my $rm_at = substr $command[0], 7;  # remove @ echo 
+   my $rm_dash = substr $command[0],2; # remove - 
+   my $sym = substr $command[0], 0,1;  # capture symbol
+
+   # Found at run_command without @ echo
+   if ($sym eq "@") {
+      run_command($rm_at);
+   }
+
+   elsif ($sym eq "-") {
+     run_command($rm_dash);
+   }
+
+   # Run command normally with print
+   else {
+      #@command =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||@command/ge;
+      #@command =~ s/\$\$/\$/;            
+      print "@command\n";
+      my $status = eval {no warnings; system @command};
+
+      # return undef means exit(0) success exit
+      return undef unless $status;
+      return "$!" if $status == -1;
+      my $signal = $status & 0x7F;
+      my $core = $status & 0x80;
+      my $exit = ($status >> 8) & 0xFF;
+      return "Error $exit" unless $signal || $core;
+      return ($strsignal{$signal} || "Invalid Signal Number $signal")
+           . ($core ? " (core dumped)" : "");
+   }
 }
 
 my $MAKECMDGOALS;
 my $Makefile = "Makefile";
-my %OPTIONS;
-my %GRAPH;
-my %MACROS;
 
 sub usage() { die "Usage: $0 [-mgd] [target]\n" }
 sub stop($) { die "$Makefile:@_. Stop.\n" }
@@ -86,6 +121,7 @@ sub scan_cmdline() {
    $MAKECMDGOALS = $ARGV[0] if @ARGV == 1;
 }
 
+# Debugging purposes
 sub dump_graph() {
    print STDERR "%MACROS:\n";
    for my $macro (sort keys %MACROS) {
@@ -110,17 +146,26 @@ sub load_Makefile() {
    my $target;
    while (defined (my $line = <$mkfile>)) {
       next if $line =~ m/^\s*(#|$)/;
+      # Defining a macros
       if (!$target && $line =~ m/^\s*(\S+)\s*=\s*(.*?)\s*$/) {
          $MACROS{$1} = {LINE=> $., VALUE=> $2};
-      }elsif ($line =~ m/^(\S+)\s*:\s*(.*)/) {
-         $target = $1;
-         $GRAPH{$target}{PREREQS} = [split ' ', $2];
+      }
+      elsif ($line =~ m/^(\S+)\s*:\s*(.*)/) {
+         my $tempprereq = $2;
+         $target = $1;              # Keep default if not macro
+
+         # Replace macros
+         $target =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$target/ge;
+         $tempprereq =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$tempprereq/ge;
+         $GRAPH{$target}{PREREQS} = [split ' ', $tempprereq];
          $GRAPH{$target}{LINE} = $.;
          $MAKECMDGOALS = $target unless $MAKECMDGOALS;
       }elsif ($line =~ m/^\t(.*)/) {
          if (defined $target) {
+            my $tempcmd = $1;
+            $tempcmd =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$tempcmd/ge;
             push @{$GRAPH{$target}{COMMANDS}},
-                 {LINE=> $., CMD=> $1};
+                 {LINE=> $., CMD=> $tempcmd};
          }else {
             stop "$.: Command before first target";
          }
@@ -131,38 +176,89 @@ sub load_Makefile() {
    close $mkfile;
 }
 
-sub modtime ($) {
+sub get_time($) {
    my ($filename) = @_;
    my @stat = stat $filename;
    return @stat ? $stat[9] : undef;
 }
 
+my $updatecheck = 1;
+my $currentcheck = 1;
+
 sub make_goal($) {
    my ($goal) = @_;
-   ### fill in stuff here and delete this comment
-   # 
-   # if $goal.visited() == true: return /*check a graph?*/
-   # else: set $goal.visited() true. continue. /*add to graph?*/
-   #
-   # if (exists $GRAPH{$goal}) //if $goal ?isTarget == false:
-   # 	if $goal ?isFile == true: return modtime time
-   # 	else: print "No rule to make...". exit 1.
-   # else: (not a target): continue
-   #
-   # for each prerequisite:
-   # 	make_goal(prerequisite) /*recursion on prerequisite*/
-   # 	Remember newest total modtime?
-   # 	if no prequisites: modtime = 0
-   #
-   # if target file DNE || newest prequisite newer than target modtime:
-   # 	run all commands
-   #
-   # if commands built target file successfully: return modtime
-   # else: return 0
+   sub make_goal($);                     # fwd declaration fnx
+  
+   # Check if goal is !target
+   if(not(exists $GRAPH{$goal})){
+      if(-e $goal){
+         return get_time($goal);
+      }
+      else{
+         print "make: *** No rule to make target '$goal'. Stop.\n";
+         exit(1);
+      }
+   }
+
+   my $prereq = $GRAPH{$goal}{PREREQS};  # ref prereq array
+   my $commds = $GRAPH{$goal}{COMMANDS}; # ref commands array
+
+   if($updatecheck){
+      if ($goal eq "all"){
+         foreach my $pre (@$prereq) {
+            if (not(-e $pre)) {
+               $currentcheck = 0;
+            }
+         }
+      }
+      else{
+         if (not(-e $goal)) {
+            $currentcheck = 0;
+         }
+      }
+
+      if($currentcheck){
+         if($goal eq "all"){
+            print "make: Nothing to be done for 'all'.\n";
+         }
+         else{
+            print "make: '$goal' is up to date.\n";
+         }
+         return;
+      }
+   }
+   
+
+
+   # For each prereq (check if prereq exists or not)
+   if (defined $prereq->[0]) {         # deref check indx0 prereq arr
+      # Prereq exists
+      foreach my $pre (@$prereq) {     # iterate prereq arr indxs
+         make_goal($pre);              # Recurs make on indexes
+      }
+      # Check command on prereq
+      foreach my $cmd (@$commds) {
+         my %cmdhash = %$cmd;          # Make a hash of cmds
+         run_command($cmdhash{CMD});   # run cmd
+      }
+   }
+   # Check Commands (no prereq found)
+   else {
+      #print "no prereq\n";
+      foreach my $cmd (@$commds) {  
+         my %cmdhash = %{$cmd};        # make hash of cmds
+         if (defined run_command($cmdhash{CMD})
+                      and substr($cmdhash{CMD},0,1) eq '-') {
+            print "pmake: [Makefile $cmdhash{LINE}: $goal] Error 1 (ignored)\n";
+         }
+      }
+   }       
 }
 
 scan_cmdline;
 load_Makefile;
+
+dump_graph if $OPTIONS{'d'};
 
 dump_hash ("MACROS", %MACROS) if $OPTIONS{'m'};
 dump_hash ("GRAPH", %GRAPH) if $OPTIONS{'g'};

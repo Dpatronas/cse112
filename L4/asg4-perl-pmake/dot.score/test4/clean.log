@@ -1,1 +1,6 @@
-- rm main.o hello.o hello
+Check 1
+Check 3
+rm main.o hello.o hello
+rm: cannot remove ‘main.o’: No such file or directory
+rm: cannot remove ‘hello.o’: No such file or directory
+rm: cannot remove ‘hello’: No such file or directory
