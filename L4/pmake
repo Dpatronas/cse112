@@ -228,8 +228,6 @@ sub make_goal($) {
       }
    }
    
-
-
    # For each prereq (check if prereq exists or not)
    if (defined $prereq->[0]) {         # deref check indx0 prereq arr
       # Prereq exists
@@ -239,7 +237,14 @@ sub make_goal($) {
       # Check command on prereq
       foreach my $cmd (@$commds) {
          my %cmdhash = %$cmd;          # Make a hash of cmds
-         run_command($cmdhash{CMD});   # run cmd
+         # run_command($cmdhash{CMD});   # run cmd
+
+         # check for error in run command
+         if (defined run_command($cmdhash{CMD})) {
+            print "pmake: *** [Makefile:$cmdhash{LINE}: $goal] ";
+            print "Error 1\n";
+            exit(1);
+         }
       }
    }
    # Check Commands (no prereq found)
@@ -247,12 +252,14 @@ sub make_goal($) {
       #print "no prereq\n";
       foreach my $cmd (@$commds) {  
          my %cmdhash = %{$cmd};        # make hash of cmds
+         # check for -
          if (defined run_command($cmdhash{CMD})
                       and substr($cmdhash{CMD},0,1) eq '-') {
-            print "pmake: [Makefile $cmdhash{LINE}: $goal] Error 1 (ignored)\n";
+            print "pmake: [Makefile:$cmdhash{LINE}: $goal] ";
+            print "Error 1 (ignored)\n";
          }
       }
-   }       
+   } 
 }
 
 scan_cmdline;
