@@ -1,1 +1,1 @@
-gcc hello.c -o hello
+make: 'hello' is up to date.
