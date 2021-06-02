@@ -60,23 +60,37 @@ my %strsignal = (
    31 => "Bad system call",
 );
 
+### Hashes ###
+my %OPTIONS; # options defined
+my %GRAPH;   # dependencies
+my %MACROS;  # defined macros
+my %VISITED; # Hash for visited goals. Set vist goal: ${VISITED} = 1
+
 # When a command is detected, run_command to execute cmd
 # Returns 0 or undef when everything runs fine
 
 sub run_command (@) {   
    my (@command) = @_;
-   
-   # Check for the @
-   my $remove_at = substr $command[0], 7;
-   my $at_sym = substr $command[0], 0,1;
+   sub run_command(@); 
+
+   # Check @ echo and -
+   my $rm_at = substr $command[0], 7;  # remove @ echo 
+   my $rm_dash = substr $command[0],2; # remove - 
+   my $sym = substr $command[0], 0,1;  # capture symbol
 
    # Found at run_command without @ echo
-   if ($at_sym eq "@") {
-      sub run_command(@); 
-      run_command($remove_at);
+   if ($sym eq "@") {
+      run_command($rm_at);
    }
+
+   elsif ($sym eq "-") {
+     run_command($rm_dash);
+   }
+
    # Run command normally with print
    else {
+      #@command =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||@command/ge;
+      #@command =~ s/\$\$/\$/;            
       print "@command\n";
       my $status = eval {no warnings; system @command};
 
@@ -94,12 +108,6 @@ sub run_command (@) {
 
 my $MAKECMDGOALS;
 my $Makefile = "Makefile";
-
-### Hashes ###
-my %OPTIONS; # options defined
-my %GRAPH;   # dependencies
-my %MACROS;  # defined macros
-my %VISITED; # Hash for visited goals. Set vist goal: ${VISITED} = 1
 
 sub usage() { die "Usage: $0 [-mgd] [target]\n" }
 sub stop($) { die "$Makefile:@_. Stop.\n" }
@@ -138,15 +146,23 @@ sub load_Makefile() {
       # Defining a macros
       if (!$target && $line =~ m/^\s*(\S+)\s*=\s*(.*?)\s*$/) {
          $MACROS{$1} = {LINE=> $., VALUE=> $2};
-      }elsif ($line =~ m/^(\S+)\s*:\s*(.*)/) {
-         $target = $1;
-         $GRAPH{$target}{PREREQS} = [split ' ', $2];
+      }
+      elsif ($line =~ m/^(\S+)\s*:\s*(.*)/) {
+         my $tempprereq = $2;
+         $target = $1;              # Keep default if not macro
+
+         # Replace macros
+         $target =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$target/ge;
+         $tempprereq =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$tempprereq/ge;
+         $GRAPH{$target}{PREREQS} = [split ' ', $tempprereq];
          $GRAPH{$target}{LINE} = $.;
          $MAKECMDGOALS = $target unless $MAKECMDGOALS;
       }elsif ($line =~ m/^\t(.*)/) {
          if (defined $target) {
+            my $tempcmd = $1;
+            $tempcmd =~ s/\${(.*?)}/$MACROS{$1}{VALUE}||$tempcmd/ge;
             push @{$GRAPH{$target}{COMMANDS}},
-                 {LINE=> $., CMD=> $1};
+                 {LINE=> $., CMD=> $tempcmd};
          }else {
             stop "$.: Command before first target";
          }
@@ -163,30 +179,46 @@ sub get_time($) {
    return @stat ? $stat[9] : undef;
 }
 
+my $updatecheck = 1;
+my $currentcheck = 1;
+
 sub make_goal($) {
    my ($goal) = @_;
    my $prereq = $GRAPH{$goal}{PREREQS};  # ref prereq array
    my $commds = $GRAPH{$goal}{COMMANDS}; # ref commands array
-
-   sub make_goal($);          # fwd declaration fnx
+   sub make_goal($);                     # fwd declaration fnx
+   
+   if($updatecheck){
+      if ($goal eq "all"){
+         foreach my $pre (@$prereq) {     
+            if (not(-e $pre)) {
+               $currentcheck = 0;
+            }
+         }    
+      }
+      else{
+         if (not(-e $goal)) {
+            $currentcheck = 0;
+         }
+      }
+        
+      if($currentcheck){
+         if($goal eq "all"){
+            print "make: Nothing to be done for 'all'.\n";
+         }
+         else{
+            print "make: '$goal' is up to date.\n";
+         }
+         return;
+      }
+        $updatecheck = 0;
+   }
 
    # Check if goal is !target
-   if (!defined $goal) {
-      
-      # Check if goal is a file 
-      my $findfile = system("find $goal");
-      if (-e $findfile) {
-         print "found file: $findfile\n";
-         return get_time($findfile);      # Return modtime
-      }
-      else {
-         print "file not found";
-      } 
-   }
+#         print "make: *** No rule to make target '$goal'. Stop.";
 
    # For each prereq (check if prereq exists or not)
    if (defined $prereq->[0]) {         # deref check indx0 prereq arr
-
       # Prereq exists
       foreach my $pre (@$prereq) {     # iterate prereq arr indxs
          make_goal($pre);              # Recurs make on indexes
@@ -194,16 +226,14 @@ sub make_goal($) {
       # Check command on prereq
       foreach my $cmd (@$commds) {
          my %cmdhash = %$cmd;          # Make a hash of cmds
-         # print "cmd p : $cmdhash{CMD}\n";
          run_command($cmdhash{CMD});   # run cmd
       }
    }
    # Check Commands (no prereq found)
    else {
       #print "no prereq\n";
-      foreach my $cmd (@$commds) {
-         my %cmdhash = %{$cmd};        # make hash of cmds   
-         # print "cmd !p: $hash{CMD}";
+      foreach my $cmd (@$commds) {  
+         my %cmdhash = %{$cmd};        # make hash of cmds
          run_command($cmdhash{CMD});   # run cmd
       }
    }       
@@ -212,10 +242,11 @@ sub make_goal($) {
 scan_cmdline;
 load_Makefile;
 
+dump_graph if $OPTIONS{'d'};
+
 dump_hash ("MACROS", %MACROS) if $OPTIONS{'m'};
 dump_hash ("GRAPH", %GRAPH) if $OPTIONS{'g'};
 dump_graph if $OPTIONS{'d'};
-
 
 make_goal ($MAKECMDGOALS);
 
